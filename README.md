@@ -68,6 +68,31 @@ switches off has an on-probability whose average over [a, b] is 1 - (e^-ka - e^-
 |---|---|
 <!-- END:investigations -->
 
+## Why MaBoSS, not BoolNet
+
+[BoolNet](https://cran.r-project.org/package=BoolNet) was the first Boolean simulator proposed for this layer. MaBoSS
+was chosen instead because it fits how this ecosystem builds and runs composites. The choice can be revisited.
+
+- **It runs where the composites run.** compose-api builds each environment from Python packages with a pixi lock.
+  MaBoSS ships Python wheels on PyPI ([`cmaboss`](https://pypi.org/project/cmaboss/), manylinux x86-64 and aarch64).
+  BoolNet is an R package with no Python port on PyPI, so it would need an R runtime in every environment, reached from
+  Python through a subprocess or rpy2.
+- **Rates, not only update rules.** MaBoSS simulates Boolean networks in continuous time, with transition rates that
+  can be parameters. A kinetic layer can therefore drive the Boolean layer by setting those rates through this
+  Process's `parameters` input. BoolNet updates in discrete steps (synchronous, asynchronous or probabilistic).
+- **Reproducible.** Runs are seeded (`seed_pseudorandom`); the same seed gives the same result (checked).
+- **Maintained, permissively licensed.** maboss-bkmc/MaBoSS is BSD-3-Clause, actively developed, and builds and tests
+  `cmaboss` on Linux, macOS and Windows in its own CI.
+
+**The cost of the choice.** BoolNet's discrete steps would make carrying the exact state from one coupling interval to
+the next trivial. MaBoSS reports an ensemble's distribution, so this Process samples one joint state per interval (see
+Coupling above).
+
+**Other options looked at.** mpbn (most-permissive Boolean networks; trajectory sampling and attractor propensities)
+is the closest alternative. AEON.py and PyBoolNet focus on attractors and state graphs rather than time-course
+simulation. BooleanNet's own README describes it as better suited to learning. CANA and bonesis analyse or synthesise
+networks rather than simulate them.
+
 ## Run it locally
 
     bash scripts/serve.sh            # starts the workbench and opens it
