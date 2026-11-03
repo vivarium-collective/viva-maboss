@@ -1,4 +1,4 @@
-# maboss
+# viva-maboss
 
 <!-- BEGIN:badges -->
 <!-- `vivarium-workbench gen-readme` fills this with CI / read-only workbench / license
@@ -6,9 +6,8 @@
      `vivarium-workbench gen-readme --workspace .` to refresh. -->
 <!-- END:badges -->
 
-A Process-Bigraph research workspace scaffolded from
-[viva-template](https://github.com/vivarium-collective/viva-template). _Replace this
-line with one plain sentence on what this workspace studies._
+A process-bigraph wrapper for [MaBoSS](https://github.com/maboss-bkmc/MaBoSS), a stochastic Boolean network
+simulator, for use as the Boolean regulatory layer of multiscale composites.
 
 <!-- BEGIN:dashboard -->
 <!-- `vivarium-workbench gen-readme` fills this with a one-line link to the published
@@ -18,6 +17,34 @@ line with one plain sentence on what this workspace studies._
 <!-- END:dashboard -->
 
 ## What's inside
+
+**`MaBoSSProcess`** (`viva_maboss.processes`) drives the real MaBoSS engine through
+[`cmaboss`](https://pypi.org/project/cmaboss/) (BSD-3-Clause, built and published by maboss-bkmc/MaBoSS). Each
+interval it writes the network (`.bnd`) and an interval configuration (`.cfg`), runs `sample_count` stochastic
+trajectories, and reports:
+
+- `node_probabilities`: the ensemble probability that each node is on, averaged over the interval's last
+  `time_tick` window (MaBoSS reports window averages, not instants);
+- `node_state`: one joint state sampled from the ensemble's joint-state distribution over that window.
+
+Both outputs are deltas, so `map[float]` stores hold the current values.
+
+**Coupling.** MaBoSS starts a run from per-node initial distributions only, so the Process carries one sampled joint
+state and starts the next interval from exactly that state. That is exact in distribution over many trajectories.
+A smaller `time_tick` brings the carried state closer to the end of the interval.
+
+**Inputs.** `node_state` is where the next interval starts; a sibling process may write it. `parameters` overrides the
+network's `$name` rates, so a kinetic layer can drive the Boolean layer. Parameters are written into each interval's
+`.cfg`. `cmaboss`'s `update_parameters` is not used, because on 1.0.0b34 it accepted a change and the result did not
+change.
+
+**Reproducibility.** The `seed` config and the interval index seed both MaBoSS and the joint-state sampler.
+
+**Validation.** The tests run the real engine against an analytic oracle. A node that switches on at rate k and never
+switches off has an on-probability whose average over [a, b] is 1 - (e^-ka - e^-kb) / (k(b - a)).
+
+**Installing.** Runtime dependencies are process-bigraph, bigraph-schema, cmaboss and numpy. The dashboard is the
+`dashboard` extra; `dev` includes it. The composite generator is `maboss_toggle_switch`.
 
 <!-- A short, plain description of what this workspace contains — the families of
      studies, the key composites, what a reader should look at first. The two tables
