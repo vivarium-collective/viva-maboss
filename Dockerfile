@@ -31,7 +31,8 @@ RUN mkdir -p /app/.results_cache
 # paths inside the workspace (a vendored sibling, a local sub-checkout)
 # resolve. Loses some layer cache on source-only edits — acceptable
 # trade-off for robustness across source types.
-RUN uv sync --no-install-project || uv sync
+# The dashboard (vivarium-workbench) is the `dashboard` extra, not a runtime dependency, so the image installs it.
+RUN uv sync --extra dashboard --no-install-project || uv sync --extra dashboard
 
 EXPOSE 9863
 

@@ -1,15 +1,27 @@
 [project]
-name = "maboss"
-version = "0.0.0"
-description = "Process-bigraph research workspace"
+name = "viva-maboss"
+version = "0.1.0"
+description = "Process-bigraph wrapper for MaBoSS: stochastic Boolean network simulation (cmaboss)"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.12"
+# Runtime dependencies are only what the simulation path imports, so the package installs into compose-api's composed
+# environment (process-bigraph 1.9.1, bigraph-schema 1.8.1) without the dashboard stack. The dashboard is the
+# `dashboard` extra.
 dependencies = [
-    # Floor: 1.8.5 ships the composite `core_extensions` mechanism (1.8.0) the
-    # dashboard relies on AND the emitter fix (#217) + `requests`/`fire` server
-    # deps. Below this, composite type-registration and agent-embedded emits
-    # break — the root cause behind the map[...] type errors seen in the field.
-    "process-bigraph>=1.8.5",
+    "process-bigraph>=1.9.1",
     "bigraph-schema>=1.8.1",
+    # MaBoSS's Python engine, built and published to PyPI by maboss-bkmc/MaBoSS's own workflow from engine/python
+    # (BSD-3-Clause; the wheel's metadata omits the licence). A beta, so pinned exactly.
+    "cmaboss==1.0.0b34",
+    # cmaboss imports numpy without declaring it.
+    "numpy",
+]
+
+[project.optional-dependencies]
+# The workspace dashboard (`vivarium-workbench serve`, scripts/serve.sh), reports and visualizations. The container
+# image installs it (Dockerfile, Singularity.def).
+dashboard = [
     "bigraph-viz>=2.0.3",
     "pyyaml>=6.0",
     "jsonschema[format-nongpl]>=4.21",
@@ -17,18 +29,14 @@ dependencies = [
     "pypdf>=4.0",
     "matplotlib",
     "plotly",
-    # Web-based workspace dashboard (server + templates + assets + lib helpers).
-    # Extracted from viva-template as of v0.4.16; provides the `vivarium-workbench
-    # serve` CLI invoked by scripts/serve.sh.
     "vivarium-workbench",
 ]
-
-[project.optional-dependencies]
-dev = ["pytest>=7.4"]
+# CI installs `.[dev]` (workspace-ci.yml), which needs the workspace lint and the dashboard tooling too.
+dev = ["viva-maboss[dashboard]", "pytest>=7.4"]
 cli = ["typer", "rich"]
 
 [project.scripts]
-maboss = "viva_maboss.cli.__main__:main"
+viva-maboss = "viva_maboss.cli.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -40,9 +48,7 @@ build-backend = "hatchling.build"
 allow-direct-references = true
 
 # Declare the workspace Python package explicitly so this workspace is
-# pip-installable (e.g. `pip install git+<repo>@<sha>`).  sms-api injects it
-# as an extra_pip_dep so the container runner can import the workspace's
-# processes from a committed + pushed git ref.
+# pip-installable (e.g. `pip install git+<repo>@<sha>`).
 [tool.hatch.build.targets.wheel]
 packages = ["viva_maboss"]
 

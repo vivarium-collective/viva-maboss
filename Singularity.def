@@ -37,7 +37,8 @@ From: python:3.13-slim-bookworm
     # Same fallback chain as the Dockerfile: try a project-skipping sync
     # (faster + handles workspaces whose pyproject still has the
     # hatchling bypass), fall back to a full sync.
-    uv sync --no-install-project || uv sync
+    # The dashboard (vivarium-workbench) is the `dashboard` extra, not a runtime dependency.
+    uv sync --extra dashboard --no-install-project || uv sync --extra dashboard
 
 %environment
     export PYTHONUNBUFFERED=1

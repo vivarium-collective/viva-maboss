@@ -326,6 +326,42 @@ wheels = [
 ]
 
 [[package]]
+name = "cmaboss"
+version = "1.0.0b34"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6c/d2/6aa1ec6fc148a9dbedebe1eed2c5cc022e1a70d40c10aa66c84a6d212940/cmaboss-1.0.0b34-cp312-cp312-macosx_13_0_x86_64.whl", hash = "sha256:2338ed7ddc392665d26ad94baabd598893e90e717562359d6203db88c3888266", size = 9623143, upload-time = "2026-10-23T23:55:32.669Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/62/f367938325e460a2540b4c3873eeae5a70efd9b6e1cbbe18ac23794ef240/cmaboss-1.0.0b34-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:93bebc0e52783789c6baa8e9188ad050d4141b1aa2397cfe0e495c549910efb9", size = 9215465, upload-time = "2026-10-24T00:49:21.257Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/af/e5a9953753b18037e2e4670d7cf3804921df32077c1bbd156dc3d4e53118/cmaboss-1.0.0b34-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:05487ec374f1136fe40aad149c782794f6e9c0f1bbf2c894dfcbcfeb594dd1a7", size = 14246891, upload-time = "2026-10-23T20:45:54.967Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/1e/faaf082b300ad9daf6efb4810b4174266fc9d5cb399a14d90bc235833f6a/cmaboss-1.0.0b34-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:4066f8bb6c048d360f910fc49e3dca5c161a6243739592ff8579b23778d9fb57", size = 14115684, upload-time = "2026-10-23T20:50:32.208Z" },
+    { url = "https://files.pythonhosted.org/packages/13/f6/54888546e810171dc3de46f0985b40a14ebbfa3159d82acbaa97b3a174ab/cmaboss-1.0.0b34-cp312-cp312-win_amd64.whl", hash = "sha256:948a39c518c7ce2e1e6117d4f2cb18faa7d2f4376cd4fb4ed07dc258c2424713", size = 4216838, upload-time = "2026-10-23T21:07:55.405Z" },
+    { url = "https://files.pythonhosted.org/packages/17/66/53239230e72483cafc20cf44439b06da7952f9c6ff1193f066714d2c8d60/cmaboss-1.0.0b34-cp313-cp313-macosx_13_0_x86_64.whl", hash = "sha256:e36c12665d180f603424d7727c32ce79e0da2078398079f571210ec923cce23a", size = 9622977, upload-time = "2026-10-23T23:55:34.48Z" },
+    { url = "https://files.pythonhosted.org/packages/53/95/5bfc658e15dcc0d65a3b365c6af8e36352e24a154a8a4cf18f2587a7d165/cmaboss-1.0.0b34-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:554526c57463e599be0822d117ca71b45843736bb054d2075b9f398913b4fd8e", size = 9215528, upload-time = "2026-10-24T00:49:22.849Z" },
+    { url = "https://files.pythonhosted.org/packages/65/1c/a9eb9d72383c9379fa8a9357c3d55eb930df0830b0880d169d9ad2a7c513/cmaboss-1.0.0b34-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a3e4ba8dc6860a512086e0455fe459a59091e343a6876e8aa8dc1a507c0d9025", size = 14246515, upload-time = "2026-10-23T20:45:57.628Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/3b/2d80df546f4a9134e7ce3a3d65f018fccfca9d5c8fd9eb3ce23bcdec735f/cmaboss-1.0.0b34-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:2119bd521fef1eeda770a453daa37c3622b030e896cb1b0c667fa993e56d1b5d", size = 14115333, upload-time = "2026-10-23T20:50:34.869Z" },
+    { url = "https://files.pythonhosted.org/packages/34/f6/b7f3753cb5a4e38fc3fe4e8cc03963dae85051a5f080329c19eaea432aa9/cmaboss-1.0.0b34-cp313-cp313-win_amd64.whl", hash = "sha256:eef9d285d1e4e9e47090052142ab09f782c962b1800cbeb87bf4117f5280e93d", size = 4216622, upload-time = "2026-10-23T21:07:56.563Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/a3/ff59a78c48fa0f45ad03c3b61f8093885aeb2383507e23999b6c6671773f/cmaboss-1.0.0b34-cp314-cp314-macosx_13_0_x86_64.whl", hash = "sha256:a549ebdf0197bc46791f1d5dac62c7340a6ebaddd29548fb0eaf07891ef7d62d", size = 9623282, upload-time = "2026-10-23T23:55:36.616Z" },
+    { url = "https://files.pythonhosted.org/packages/99/7a/ea4c1371dfcb7589ac3c0398d3c6f12d5bbff333c1f584e5c2686de67c13/cmaboss-1.0.0b34-cp314-cp314-macosx_14_0_arm64.whl", hash = "sha256:c6efcafb480b839c357b5c53ab46f4d62635a4c49aaf3c7d3500083a229a6b9e", size = 9216410, upload-time = "2026-10-24T00:49:24.544Z" },
+    { url = "https://files.pythonhosted.org/packages/36/75/2655d220e8deb3d502ed73257817e158f2dd2edaccf3d1c0685038a4546f/cmaboss-1.0.0b34-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:de5650ac8626defe485839ef84248a6ee27809421526fef7c3a951d52977ffe4", size = 14247688, upload-time = "2026-10-23T20:46:00.835Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/25/455b8618c85f02856596e489cdbf3a29b51741875528f91cdb808f844bd3/cmaboss-1.0.0b34-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:fa281421793ef7ceaf9249d47a0d4c240f12d1a84496fd644c370cd07348bf2f", size = 14115723, upload-time = "2026-10-23T20:50:37.589Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/80/3112b3e3cbc5547da674290009e0ef73defde100fa60bd095eed7c505a8d/cmaboss-1.0.0b34-cp314-cp314-win_amd64.whl", hash = "sha256:015105106ff122de6906ec632d19f56f4550cade4bae47694cad7895eaf658bc", size = 4337151, upload-time = "2026-10-23T21:07:57.943Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/c7/447299906f94f42e67948a88642f6ceeecf56ea361d2e4bfba03e4a74c4a/cmaboss-1.0.0b34-cp314-cp314t-macosx_13_0_x86_64.whl", hash = "sha256:59ef592af32e1d1d0ffe7332d4a0b07bd278ab54fd5d2a769548011b288cfafb", size = 9631991, upload-time = "2026-10-23T23:55:38.636Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/24/0111be6f9aec7df29957a3e319328bb606d5b0b3901ce7969da60eb9c37d/cmaboss-1.0.0b34-cp314-cp314t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:95ab6166d96505cacb44d03953a07ea7786fa74199f497d41261f50e226e4739", size = 14252108, upload-time = "2026-10-23T20:46:03.128Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/2c/5c4096b3a68bc28579bfbe4601969e5edb0a97b01656a96e701fb27c4bce/cmaboss-1.0.0b34-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:6b06396aff8efa5855f92f1fcb9aad42bafead111d5832c65f0b488e1ac5498d", size = 14121122, upload-time = "2026-10-23T20:50:39.986Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/e0/74ea514bfd6c432d14b6fb17dbe32332d633122a762f402461e7b71eb5cd/cmaboss-1.0.0b34-cp314-cp314t-win_amd64.whl", hash = "sha256:6dbd1cb7b7c4428d8584624a7ac92dbf4294726779ca262c7ddfda8d555ffa2b", size = 4354016, upload-time = "2026-10-23T21:07:58.988Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/7b/75419b46417d597e4a3d6c1789b1078ea4d59c1518d4c17771a639260f67/cmaboss-1.0.0b34-cp315-cp315-macosx_13_0_x86_64.whl", hash = "sha256:7ffd87d312dc63fdd44048466c6888e622d424b16337753394c75328513f3d37", size = 9623323, upload-time = "2026-10-23T23:55:40.208Z" },
+    { url = "https://files.pythonhosted.org/packages/da/06/083946a6d759bfd9f5820dd6a06d2a45b708a7a53c4ac569546d31adc4d5/cmaboss-1.0.0b34-cp315-cp315-macosx_14_0_arm64.whl", hash = "sha256:4f51fb3e0c967c48ed98cfc02fe1f1c33d47b870b74d1fa90254e851e0c6ad18", size = 9216226, upload-time = "2026-10-24T00:49:31.041Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/80/b86e1821526a7d71b61e5d08ad4524d5c155f75d6818548f573066eb7269/cmaboss-1.0.0b34-cp315-cp315-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:917e69f3604e1f6b88994414f0ab12d48e0afe0e312b87756a06fcdd84ab157f", size = 14247672, upload-time = "2026-10-23T20:46:05.522Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/23/8efc4d527cc262dbafb5f70ce0e6c4bf1c1892cff70d652022d8cab9db10/cmaboss-1.0.0b34-cp315-cp315-manylinux_2_28_x86_64.whl", hash = "sha256:9cb8ab0eff84c7dde5b168c0c02340931fea6cfcc249b6c7c9f154ffb91b39e9", size = 14115718, upload-time = "2026-10-23T20:50:42.251Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/b5/53e83e838da8b9538d74551b5bd8cec73a2916d13d6044bcff1d5bc94988/cmaboss-1.0.0b34-cp315-cp315-win_amd64.whl", hash = "sha256:755e895a6f8a6e438656084c5841c00520107f7b0cab43baf196df1ef9b8bdc4", size = 4337919, upload-time = "2026-10-23T21:08:00.176Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/34/7a23e47c00d76bd899bb5cf3e0c43a3ce3fb200b5f68f3cfa01f1d664268/cmaboss-1.0.0b34-cp315-cp315t-macosx_13_0_x86_64.whl", hash = "sha256:a3f16d8c95f19241bb55a897f4fe0f3cda73432b9960b69aeb2ec8a043355143", size = 9631011, upload-time = "2026-10-23T23:55:41.921Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/6b/2174fa857b1b8f2bd65f64d5fbd8831ba287233e80d311541299d3a62771/cmaboss-1.0.0b34-cp315-cp315t-macosx_14_0_arm64.whl", hash = "sha256:08fbaddae535ea816bcaa808b7be575a571e440cc669770f2bc66863fba5366d", size = 9223184, upload-time = "2026-10-24T00:49:32.768Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/18/416124a00135c5657c078f4211c59d669bfa9d8809557a139e6018c61e8d/cmaboss-1.0.0b34-cp315-cp315t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:eb17c8812036ca646e8fe9ec74953cf56792fde5e1ce99e8452dba199403f8f8", size = 14259155, upload-time = "2026-10-23T20:46:07.577Z" },
+    { url = "https://files.pythonhosted.org/packages/16/ac/18c328d6838aea4522cb8120e8c3ea548973b932cb60e6ea2ab18ad329c6/cmaboss-1.0.0b34-cp315-cp315t-manylinux_2_28_x86_64.whl", hash = "sha256:fdf5b16f015a98bb5746e694e2402cd13894509c756c82c340ffa22f3587824f", size = 14126990, upload-time = "2026-10-23T20:50:44.654Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/64/ed14817da2f7298d05acd10a6f90993b339eec56773c7af729a3729c369e/cmaboss-1.0.0b34-cp315-cp315t-win_amd64.whl", hash = "sha256:7690f46447152c30ccb36105c048d0ad578c642937cab0f466437659bfff98df", size = 4353946, upload-time = "2026-10-23T21:08:01.58Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -854,50 +890,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/da/34/28fff3ab31ccff1fd
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/3d/14ce75ef66813643812f3093ab17e46d3a206942ce7376d31ec2d36229e7/lark-1.3.1-py3-none-any.whl", hash = "sha256:c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12", size = 113151, upload-time = "2025-10-27T18:25:54.882Z" },
 ]
-
-[[package]]
-name = "maboss"
-version = "0.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "bigraph-schema" },
-    { name = "bigraph-viz" },
-    { name = "jinja2" },
-    { name = "jsonschema", extra = ["format-nongpl"] },
-    { name = "matplotlib" },
-    { name = "plotly" },
-    { name = "process-bigraph" },
-    { name = "pypdf" },
-    { name = "pyyaml" },
-    { name = "vivarium-workbench" },
-]
-
-[package.optional-dependencies]
-cli = [
-    { name = "rich" },
-    { name = "typer" },
-]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bigraph-schema", specifier = ">=1.8.1" },
-    { name = "bigraph-viz", specifier = ">=2.0.3" },
-    { name = "jinja2", specifier = ">=3.1" },
-    { name = "jsonschema", extras = ["format-nongpl"], specifier = ">=4.21" },
-    { name = "matplotlib" },
-    { name = "plotly" },
-    { name = "process-bigraph", specifier = ">=1.8.5" },
-    { name = "pypdf", specifier = ">=4.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "rich", marker = "extra == 'cli'" },
-    { name = "typer", marker = "extra == 'cli'" },
-    { name = "vivarium-workbench", git = "https://github.com/vivarium-collective/vivarium-workbench.git?branch=main" },
-]
-provides-extras = ["dev", "cli"]
 
 [[package]]
 name = "markdown-it-py"
@@ -2417,6 +2409,65 @@ xarray = [
     { name = "zarr" },
     { name = "zarrs" },
 ]
+
+[[package]]
+name = "viva-maboss"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "bigraph-schema" },
+    { name = "cmaboss" },
+    { name = "numpy" },
+    { name = "process-bigraph" },
+]
+
+[package.optional-dependencies]
+cli = [
+    { name = "rich" },
+    { name = "typer" },
+]
+dashboard = [
+    { name = "bigraph-viz" },
+    { name = "jinja2" },
+    { name = "jsonschema", extra = ["format-nongpl"] },
+    { name = "matplotlib" },
+    { name = "plotly" },
+    { name = "pypdf" },
+    { name = "pyyaml" },
+    { name = "vivarium-workbench" },
+]
+dev = [
+    { name = "bigraph-viz" },
+    { name = "jinja2" },
+    { name = "jsonschema", extra = ["format-nongpl"] },
+    { name = "matplotlib" },
+    { name = "plotly" },
+    { name = "pypdf" },
+    { name = "pytest" },
+    { name = "pyyaml" },
+    { name = "vivarium-workbench" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "bigraph-schema", specifier = ">=1.8.1" },
+    { name = "bigraph-viz", marker = "extra == 'dashboard'", specifier = ">=2.0.3" },
+    { name = "cmaboss", specifier = "==1.0.0b34" },
+    { name = "jinja2", marker = "extra == 'dashboard'", specifier = ">=3.1" },
+    { name = "jsonschema", extras = ["format-nongpl"], marker = "extra == 'dashboard'", specifier = ">=4.21" },
+    { name = "matplotlib", marker = "extra == 'dashboard'" },
+    { name = "numpy" },
+    { name = "plotly", marker = "extra == 'dashboard'" },
+    { name = "process-bigraph", specifier = ">=1.9.1" },
+    { name = "pypdf", marker = "extra == 'dashboard'", specifier = ">=4.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4" },
+    { name = "pyyaml", marker = "extra == 'dashboard'", specifier = ">=6.0" },
+    { name = "rich", marker = "extra == 'cli'" },
+    { name = "typer", marker = "extra == 'cli'" },
+    { name = "viva-maboss", extras = ["dashboard"], marker = "extra == 'dev'" },
+    { name = "vivarium-workbench", marker = "extra == 'dashboard'", git = "https://github.com/vivarium-collective/vivarium-workbench.git?branch=main" },
+]
+provides-extras = ["dashboard", "dev", "cli"]
 
 [[package]]
 name = "viva-superpowers"
