@@ -2412,13 +2412,15 @@ xarray = [
 
 [[package]]
 name = "viva-maboss"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "bigraph-schema" },
     { name = "cmaboss" },
     { name = "numpy" },
     { name = "process-bigraph" },
+    { name = "rich" },
+    { name = "typer" },
 ]
 
 [package.optional-dependencies]
@@ -2462,7 +2464,9 @@ requires-dist = [
     { name = "pypdf", marker = "extra == 'dashboard'", specifier = ">=4.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4" },
     { name = "pyyaml", marker = "extra == 'dashboard'", specifier = ">=6.0" },
+    { name = "rich" },
     { name = "rich", marker = "extra == 'cli'" },
+    { name = "typer" },
     { name = "typer", marker = "extra == 'cli'" },
     { name = "viva-maboss", extras = ["dashboard"], marker = "extra == 'dev'" },
     { name = "vivarium-workbench", marker = "extra == 'dashboard'", git = "https://github.com/vivarium-collective/vivarium-workbench.git?branch=main" },

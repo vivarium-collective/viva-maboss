@@ -23,25 +23,37 @@ simulator, for use as the Boolean regulatory layer of multiscale composites.
 interval it writes the network (`.bnd`) and an interval configuration (`.cfg`), runs `sample_count` stochastic
 trajectories, and reports:
 
-- `node_probabilities`: the ensemble probability that each node is on, averaged over the interval's last
-  `time_tick` window (MaBoSS reports window averages, not instants);
-- `node_state`: one joint state sampled from the ensemble's joint-state distribution over that window.
+- `node_probabilities`: the ensemble probability that each node is on, averaged over the interval's last time window
+  (MaBoSS reports window averages, not instants; there are `windows_per_interval` windows, 100 by default);
+- `node_state`: one joint state sampled from the ensemble's joint-state distribution over that window;
+- `steps`: one per interval, the index that seeds the next interval.
 
-Both outputs are deltas, so `map[float]` stores hold the current values.
+Outputs are deltas against the values the input stores hold, so `map[float]` stores end at the new values whatever
+they held before, including a sibling's write or a restart from a saved state.
 
 **Coupling.** MaBoSS starts a run from per-node initial distributions only, so the Process carries one sampled joint
-state and starts the next interval from exactly that state. That is exact in distribution over many trajectories.
-A smaller `time_tick` brings the carried state closer to the end of the interval.
+state and starts the next interval from exactly that state. Because the sample comes from the last window, the carried
+state lags the interval's end by about half a window, `interval / (2 * windows_per_interval)`. That is an approximation,
+0.5% of the interval by default; raise `windows_per_interval` to tighten it. Measured on an absorbing switch (k = 0.3,
+three intervals of 1.0, 2000 single-trajectory replicates): 0.580 at 100 windows against the exact 0.593; 0.360 at
+one window per interval.
 
 **Inputs.** `node_state` is where the next interval starts; a sibling process may write it. `parameters` overrides the
 network's `$name` rates, so a kinetic layer can drive the Boolean layer. Parameters are written into each interval's
-`.cfg`. `cmaboss`'s `update_parameters` is not used, because on 1.0.0b34 it accepted a change and the result did not
-change.
+`.cfg`, and every `$name` needs a default in `config['parameters']`. Rates must be finite and non-negative: a negative
+rate kills the MaBoSS process (SIGBUS), so it is refused first. `cmaboss`'s `update_parameters` is not used, because on
+1.0.0b34 it accepted a change and the result did not change.
 
-**Reproducibility.** The `seed` config and the interval index seed both MaBoSS and the joint-state sampler.
+**Reproducibility.** Each interval's MaBoSS seed and sampler come from `numpy.random.SeedSequence([seed, steps])`.
+Distinct seeds never share streams, and a run resumed from a saved state continues the same streams. The MaBoSS seed is
+kept below 2^31, because MaBoSS mishandles larger `seed_pseudorandom` values (measured: single trajectories switched on
+0.64 of the time where the exact value is 0.26).
+
+**Network size.** cmaboss ships builds for up to 64, 128, 256, 512 and 1024 nodes; the smallest that fits is used.
 
 **Validation.** The tests run the real engine against an analytic oracle. A node that switches on at rate k and never
-switches off has an on-probability whose average over [a, b] is 1 - (e^-ka - e^-kb) / (k(b - a)).
+switches off has an on-probability whose average over [a, b] is 1 - (e^-ka - e^-kb) / (k(b - a)). A test with wide windows
+separates the window average from the instant (0.62277 against 0.63212).
 
 **Installing.** Runtime dependencies are process-bigraph, bigraph-schema, cmaboss and numpy. The dashboard is the
 `dashboard` extra; `dev` includes it. The composite generator is `maboss_toggle_switch`.

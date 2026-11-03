@@ -1,6 +1,6 @@
 [project]
 name = "viva-maboss"
-version = "0.1.0"
+version = "0.1.1"
 description = "Process-bigraph wrapper for MaBoSS: stochastic Boolean network simulation (cmaboss)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -16,6 +16,9 @@ dependencies = [
     "cmaboss==1.0.0b34",
     # cmaboss imports numpy without declaring it.
     "numpy",
+    # the viva-maboss console script
+    "typer",
+    "rich",
 ]
 
 [project.optional-dependencies]
