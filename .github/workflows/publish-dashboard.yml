@@ -1,0 +1,131 @@
+# >>> viva-template-provenance >>>
+# This GitHub Actions workflow is GENERATED from viva-template. Do not edit
+# it by hand: your changes are lost the next time it is regenerated, and a
+# hand-edit is invisible to the drift guard.
+#
+# If viva-template's copy of this workflow changes, this file becomes STALE
+# and workspace CI flags it (scripts/check-workflow-freshness.py). Refresh by
+# re-scaffolding, or by copying the current source from
+#   vivarium-collective/viva-template/template/.github/workflows/<template>
+# template: publish-dashboard.yml
+# sha256: 5d7d9f0e4368f54a2901cc71f02e136ef2ec7433da035aec3039403b5d3c2998
+# <<< viva-template-provenance <<<
+
+name: Publish read-only workbench
+
+# Build the workspace into a self-contained static SPA snapshot and publish it
+# to the gh-pages branch at workbench/ (served at
+# <user>.github.io/<repo>/workbench/). The READ-ONLY mirror of every
+# investigation + study on main — browsable with no server. (A legacy /dashboard/
+# path is kept as a redirect to /workbench/.)
+#
+# Ships with every workspace scaffolded from the template. Repo-specific bits
+# (base path, interactive link) are derived from the GitHub repo at run time, so
+# there is nothing to edit per workspace.
+#
+# One-time setup: Settings → Pages → Source = "Deploy from a branch" → gh-pages
+# (this workflow creates the gh-pages branch on its first run).
+#
+# DEPLOY job (post-merge to main), NOT a PR gate — a failure here never blocks a
+# merge. It writes workbench/ (+ a dashboard/ redirect) on gh-pages.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workspace/**'
+      - 'scripts/publish_dashboard.sh'
+      - '.github/workflows/publish-dashboard.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-dashboard
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # push to the gh-pages branch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Workspaces commonly vendor ecosystem deps as git submodules under
+          # external/ and declare them as editable path deps in pyproject
+          # ([tool.uv.sources] … { path = "external/<pkg>", editable = true }).
+          # Without this, the submodule dir is empty, so `uv sync` fails with
+          # "Failed to generate package metadata for <pkg>==0.0.0". A repo with
+          # no submodules treats this as a harmless no-op.
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12.9
+
+      - name: Install dependencies (incl. vivarium-workbench)
+        run: uv sync --extra dev || uv sync
+
+      - name: Ensure the publish CLI is present (latest dashboard main)
+        # uv.lock may pin a vivarium-workbench commit predating the publish CLI;
+        # force current main so `vivarium-workbench-publish` exists.
+        # --refresh-package: setup-uv caches uv's git clone of @main, so without this
+        # uv reuses a STALE cached commit and republishes a pre-merge bundle while
+        # the run stays green. Force a re-fetch of the tip.
+        run: uv pip install --refresh-package vivarium-workbench --reinstall-package vivarium-workbench "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
+
+      - name: Build read-only workbench snapshot
+        # Run inside the activated venv, NOT `uv run` — `uv run` re-syncs to
+        # uv.lock first, which would undo the ad-hoc vivarium-workbench@main
+        # install above and drop the publish console script (-> exit 127).
+        # base-path / interactive-url are derived from the GitHub repo.
+        run: |
+          source .venv/bin/activate
+          bash scripts/publish_dashboard.sh \
+            reports/published/workbench \
+            "/${{ github.event.repository.name }}/workbench" \
+            "${{ github.server_url }}/${{ github.repository }}"
+
+      - name: Publish to gh-pages
+        run: |
+          set -euo pipefail
+          if [ ! -f reports/published/workbench/index.html ]; then
+            echo "::error::build produced no bundle (no index.html); nothing to publish"
+            exit 1
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Worktree on gh-pages, bootstrapping the branch on first publish.
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add /tmp/ghp gh-pages
+          else
+            echo "gh-pages does not exist yet — bootstrapping it"
+            git worktree add --detach /tmp/ghp
+            ( cd /tmp/ghp && git checkout --orphan gh-pages && git rm -rf . >/dev/null 2>&1 || true )
+          fi
+          rm -rf /tmp/ghp/workbench
+          mkdir -p /tmp/ghp/workbench
+          cp -R reports/published/workbench/. /tmp/ghp/workbench/
+          # Legacy /dashboard/ path → redirect to /workbench/.
+          mkdir -p /tmp/ghp/dashboard
+          printf '<!doctype html><meta http-equiv="refresh" content="0; url=../workbench/">\n' > /tmp/ghp/dashboard/index.html
+          touch /tmp/ghp/.nojekyll
+          cd /tmp/ghp
+          git add -A
+          if git diff --cached --quiet; then
+            echo "read-only workbench snapshot unchanged; skipping commit"
+          else
+            git commit -m "gh-pages: republish read-only workbench (automated, ${GITHUB_SHA::7})"
+            git push origin gh-pages
+            echo "published read-only workbench to gh-pages:workbench/"
+          fi
+
+      # The README's workbench link + badges are kept fresh by `vivarium-workbench
+      # gen-readme` (run in development, checked by workspace-ci) — no separate
+      # README-banner step here.

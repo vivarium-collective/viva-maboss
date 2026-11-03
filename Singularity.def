@@ -1,0 +1,55 @@
+Bootstrap: docker
+From: python:3.13-slim-bookworm
+
+# Singularity definition for the HPC compute backend (compute_backend:
+# hpc:* in workspace.yaml). 1:1 mirror of Dockerfile — a workspace built
+# locally via Docker and deployed via Singularity on an HPC cluster
+# should behave identically. Keep the two files in lockstep: any change
+# here must be reflected in Dockerfile and vice versa.
+
+%files
+    . /app
+
+%post
+    set -eux
+
+    apt-get update && \
+        apt-get install -y --no-install-recommends \
+            openssh-client \
+            git \
+            build-essential \
+            gcc \
+            g++ \
+            python3-dev \
+            curl \
+            ca-certificates \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Install uv. The Dockerfile uses a multi-stage COPY from
+    # ghcr.io/astral-sh/uv:latest; Singularity .def files have no native
+    # multi-stage build, so use the official installer (same binary,
+    # marginally slower). Pinned to /bin to match the Docker layout.
+    curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/bin sh
+
+    mkdir -p /app/.results_cache
+
+    cd /app
+    # Same fallback chain as the Dockerfile: try a project-skipping sync
+    # (faster + handles workspaces whose pyproject still has the
+    # hatchling bypass), fall back to a full sync.
+    uv sync --no-install-project || uv sync
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export OMP_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+    export OPENBLAS_NUM_THREADS=1
+
+%runscript
+    cd /app
+    exec uv run vivarium-workbench serve --workspace /app --host 0.0.0.0 --port 9863
+
+%labels
+    org.vivarium.workspace maboss
+    org.vivarium.dashboard.port 9863
+    org.vivarium.docker-equivalent Dockerfile

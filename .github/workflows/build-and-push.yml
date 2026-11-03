@@ -1,0 +1,169 @@
+# >>> viva-template-provenance >>>
+# This GitHub Actions workflow is GENERATED from viva-template. Do not edit
+# it by hand: your changes are lost the next time it is regenerated, and a
+# hand-edit is invisible to the drift guard.
+#
+# If viva-template's copy of this workflow changes, this file becomes STALE
+# and workspace CI flags it (scripts/check-workflow-freshness.py). Refresh by
+# re-scaffolding, or by copying the current source from
+#   vivarium-collective/viva-template/template/.github/workflows/<template>
+# template: build-and-push.yml
+# sha256: b664233a93356f4ad1ea4bcf610ba9b538c33a774131285c27124eaf13672559
+# <<< viva-template-provenance <<<
+
+name: Build and Push Workspace Image
+
+# OPT-IN, not auto-on-push. Building + pushing a full multi-arch Docker image on
+# every commit is heavy and rarely needed for a research workspace — and it fails
+# (and emails) whenever the workspace has no Dockerfile or a dep won't build in a
+# clean image, which is the common case. So this runs only when explicitly
+# dispatched (Actions tab → Run workflow) or on a release tag. Same policy the
+# publish-dashboard workflow already uses. A workspace that genuinely wants an
+# image published on every push can re-add `push: {branches: [main, master]}`.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: build-and-push-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image name
+        id: img
+        run: echo "name=${IMAGE_NAME,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.img.outputs.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          # Override per repository with the IMAGE_PLATFORMS Actions variable
+          # (e.g. `gh variable set IMAGE_PLATFORMS --body linux/amd64`) when a
+          # dependency has no wheels for one platform. Unset keeps both.
+          platforms: ${{ vars.IMAGE_PLATFORMS || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Sync GHCR package visibility to match the source repo. GHCR defaults
+      # new packages to private even when the source repo is public, which
+      # blocks anonymous `docker pull`. This step attempts to PATCH the
+      # package's visibility so it tracks the repo's automatically.
+      #
+      # IMPORTANT — known GitHub API limitation:
+      #   - **Org-owned packages** (`OWNER_TYPE == Organization`): the default
+      #     `GITHUB_TOKEN`'s `packages: write` permission is sufficient to
+      #     PATCH `/orgs/{org}/packages/.../visibility`. This case works
+      #     automatically on every push.
+      #   - **User-owned packages** (`OWNER_TYPE == User`): the API endpoint
+      #     `/user/packages/.../visibility` requires a Personal Access Token
+      #     (PAT) with `write:packages` scope. The workflow's default
+      #     `GITHUB_TOKEN` is issued to `github-actions[bot]`, NOT to the
+      #     package owner, so the PATCH returns 404 ("not found" — really
+      #     "not visible to this token"). The workaround is a one-time manual
+      #     toggle in the GitHub UI:
+      #       Profile → Packages → <pkg> → Package settings →
+      #       "Connect repository" → select source repo →
+      #       "Inherit access from source repository: enabled".
+      #     After that one-time link, every future push inherits visibility
+      #     from the repo automatically. Until then, the package stays
+      #     private regardless of repo visibility.
+      #
+      # Optional opt-in: if a `GHCR_PAT` secret is configured with
+      # `write:packages` scope, the step uses it instead of GITHUB_TOKEN —
+      # that path *does* work for user-owned packages.
+      - name: Sync GHCR package visibility to repo visibility
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          # Prefer GHCR_PAT (user-supplied, can flip user-owned visibility);
+          # fall back to GITHUB_TOKEN (works for org-owned only).
+          GH_TOKEN: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+          GHCR_PAT_AVAILABLE: ${{ secrets.GHCR_PAT != '' }}
+          REPO_VISIBILITY: ${{ github.event.repository.visibility }}
+          OWNER_TYPE: ${{ github.repository_owner_type }}
+          OWNER: ${{ github.repository_owner }}
+          IMAGE: ${{ steps.img.outputs.name }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          PKG="${IMAGE##*/}"
+          if [ "$OWNER_TYPE" = "Organization" ]; then
+            ENDPOINT="/orgs/${OWNER}/packages/container/${PKG}/visibility"
+            CONTEXT="org-owned (auto-sync via default GITHUB_TOKEN)"
+          else
+            ENDPOINT="/user/packages/container/${PKG}/visibility"
+            if [ "$GHCR_PAT_AVAILABLE" = "true" ]; then
+              CONTEXT="user-owned (using secrets.GHCR_PAT — should work)"
+            else
+              CONTEXT="user-owned (default GITHUB_TOKEN — expected to 404; manual one-time link required)"
+            fi
+          fi
+          echo "context: ${CONTEXT}"
+          echo "syncing ghcr.io/${IMAGE} visibility to '${REPO_VISIBILITY}' via ${ENDPOINT}"
+          if RESULT=$(gh api -X PATCH "${ENDPOINT}" \
+              -f visibility="${REPO_VISIBILITY}" \
+              -H "Accept: application/vnd.github+json" \
+              --silent 2>&1); then
+            echo "ok: visibility synced to '${REPO_VISIBILITY}'"
+          else
+            case "$RESULT" in
+              *"Not Found"*|*"404"*)
+                if [ "$OWNER_TYPE" = "Organization" ]; then
+                  # Org case + 404 = real first-push race; package not yet created.
+                  echo "package not registered yet (org-owned, first run); next push will retry"
+                else
+                  # User case + 404 = expected limitation; tell the user how to fix once.
+                  PKG_URL="${REPO_URL%/*}/${OWNER}?tab=packages&repo_name=${PKG}"
+                  echo "::notice title=GHCR visibility::User-owned packages cannot have their visibility flipped by the workflow's default GITHUB_TOKEN (GitHub API limitation). Image is currently PRIVATE. To make anonymous \`docker pull\` work, do this once: visit ${PKG_URL}, open the '${PKG}' package, click 'Package settings' → 'Manage Actions access' → connect this repository, then under 'Danger Zone' → 'Change package visibility' set to '${REPO_VISIBILITY}'. After that one-time link, visibility inherits from the repo automatically. Alternative: add a \`GHCR_PAT\` secret with \`write:packages\` scope to fully automate this step."
+                fi
+                ;;
+              *"admin:packages"*|*"403"*)
+                echo "::warning title=GHCR visibility::Token lacks admin:packages scope for this owner; visibility not synced. Configure a \`GHCR_PAT\` secret with write:packages, or flip visibility manually via the GitHub UI." ;;
+              *)
+                echo "::warning title=GHCR visibility::Unexpected error syncing visibility: ${RESULT}" ;;
+            esac
+          fi

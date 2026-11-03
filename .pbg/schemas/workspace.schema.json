@@ -1,0 +1,302 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "workspace.yaml",
+  "type": "object",
+  "required": ["schema_version", "name", "created", "plugin_version"],
+  "properties": {
+    "schema_version": {"enum": [2, 3]},
+    "name": {"type": "string", "minLength": 1},
+    "created": {"type": "string", "format": "date"},
+    "plugin_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "package_path": {"type": "string"},
+    "default_baseline": {"$ref": "#/definitions/defaultBaseline"},
+    "pbg_processes": {
+      "type": "array", "items": {"type": "string"},
+      "description": "Legacy from v0.1.x — kept as optional for migrated workspaces; new workspaces omit it."
+    },
+    "stages": {
+      "type": "object",
+      "description": "Legacy from v0.1.x 9-stage flow — kept as optional for migrated workspaces; new workspaces omit it.",
+      "properties": {
+        "workspace_bootstrap": {"$ref": "#/definitions/stageStatus"}
+      }
+    },
+    "phases": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/phase"}
+    },
+    "observables": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/observable"}
+    },
+    "visualizations": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/visualization"}
+    },
+    "simulations": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/simulation"}
+    },
+    "datasets": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/dataset"}
+    },
+    "references_bib": {"type": "string"},
+    "server": {
+      "type": "object",
+      "properties": {"enabled": {"type": "boolean"}}
+    },
+    "imports": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/import"}
+    },
+    "expert_docs": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/expertDoc"}
+    },
+    "references_pdfs": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/referencePdf"}
+    },
+    "tasks": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/task"}
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "composite_view": {
+          "enum": ["loom-explore", "bigraph-viz"],
+          "description": "Which renderer the dashboard uses for composite wiring. Default 'loom-explore' (interactive React Flow). Set to 'bigraph-viz' to fall back to the legacy static SVG render."
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional per-directory layout overrides (workspace-root-relative paths). Any key omitted defaults to the conventional flat name (e.g. 'studies' -> 'studies'), so omitting this block keeps the classic top-level layout and existing workspaces are unaffected. Set values to relocate, e.g. 'workspace/studies', to group research dirs under a tidier subtree. Tooling resolves these via the WorkspacePaths resolver.",
+      "properties": {
+        "studies": {"type": "string"},
+        "investigations": {"type": "string"},
+        "composites": {"type": "string"},
+        "references": {"type": "string"},
+        "datasets": {"type": "string"},
+        "notes": {"type": "string"},
+        "experiments": {"type": "string"},
+        "reports": {"type": "string"},
+        "pbg": {"type": "string"},
+        "scripts": {"type": "string"},
+        "tests": {"type": "string"},
+        "docs": {"type": "string"},
+        "package": {"type": "string"}
+      }
+    }
+  },
+  "definitions": {
+    "defaultBaseline": {
+      "type": "object",
+      "description": "v3 (Phase 2): pre-fill defaults for new Study baselines so authors don't repeat composite + params + run-knobs per Study. v2ecoli friction #18 (2026-05-19): adding this block required bumping schema_version to 3, which the schema did not yet accept.",
+      "additionalProperties": false,
+      "properties": {
+        "composite":      {"type": "string", "description": "Spec id (e.g. pbg_<slug>.composites.<name>) used as the default baseline composite."},
+        "params":         {"type": "object", "description": "Default params dict for the composite (free-form; matches the composite's parameter schema)."},
+        "duration_s":     {"type": "number", "exclusiveMinimum": 0},
+        "max_duration_s": {"type": "number", "exclusiveMinimum": 0},
+        "interval_s":     {"type": "number", "exclusiveMinimum": 0},
+        "stop_on":        {"type": "string", "description": "Termination signal name (e.g. 'division', 'global_time>=N'). Composite-defined."},
+        "description":    {"type": "string"}
+      }
+    },
+    "stageStatus": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["planned", "in_progress", "complete"]},
+        "pr": {"type": ["integer", "null"]},
+        "completed": {"type": ["string", "null"]}
+      }
+    },
+    "import": {
+      "type": "object",
+      "required": ["source", "ref", "mode"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "ref": {"type": "string", "minLength": 1},
+        "mode": {"enum": ["reference", "fork-source", "in-place"]},
+        "path": {"type": ["string", "null"]},
+        "description": {"type": ["string", "null"]},
+        "installed": {
+          "type": "boolean",
+          "description": "True if this import has been pip-installed into the workspace venv (so allocate_core() will discover its processes)"
+        },
+        "install_path": {
+          "type": ["string", "null"],
+          "description": "Path or URL spec used for pip install -e (e.g. external/v2ecoli or a remote URL spec)"
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "required": ["n", "name", "status"],
+      "properties": {
+        "n": {"type": "integer", "minimum": 1},
+        "name": {"type": "string"},
+        "status": {"enum": ["planned", "in_progress", "gate_pending", "complete"]},
+        "pr": {"type": ["integer", "null"]},
+        "gate_passed": {"type": "boolean"},
+        "opened_pr": {"type": ["integer", "null"]},
+        "prereq_phases": {"type": "array", "items": {"type": "integer"}},
+        "source_artifact": {
+          "type": "object",
+          "properties": {
+            "kind": {"enum": ["expert_doc", "dataset", "reference", "claim"]},
+            "ref": {"type": "string"}
+          }
+        }
+      }
+    },
+    "observable": {
+      "type": "object",
+      "required": ["name", "store_path"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "store_path": {"type": "string", "minLength": 1},
+        "units": {"type": ["string", "null"]},
+        "description": {"type": ["string", "null"]}
+      }
+    },
+    "visualization": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "pattern": "^[a-zA-Z0-9_-]+$"},
+        "description": {"type": "string"},
+        "class": {
+          "type": "string",
+          "description": "Registered Visualization class name (e.g. 'TimeSeriesPlot'). When set, the entry is a configured instance of that class and is renderable immediately without /viva-viz code generation."
+        },
+        "type": {"enum": ["time-series", "phase-space", "heatmap", "histogram"]},
+        "observables": {"type": "array", "items": {"type": "string"}},
+        "phases": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "simulation": {"type": "string"},
+        "config": {"type": "object"}
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "required": ["name", "t_start", "t_end"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "pattern": "^[a-zA-Z0-9_-]+$"},
+        "description": {"type": "string"},
+        "t_start": {"type": "number", "minimum": 0},
+        "t_end": {"type": "number", "exclusiveMinimum": 0},
+        "initial_state": {"type": "object", "description": "Path-keyed initial values; structure free-form"},
+        "parameter_overrides": {"type": "object", "description": "Process-config overrides; structure free-form"},
+        "emitter_config": {"type": "object", "description": "Emitter settings (paths to record, sample interval, etc.)"},
+        "phases": {"type": "array", "items": {"type": "integer", "minimum": 1}, "description": "Phase numbers this simulation belongs to (empty = global)"},
+        "processes": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Names of processes from the registry that this simulation expects (declarative tag — does not drive composite construction)"},
+        "composite": {
+          "type": "string",
+          "description": "Reference to a composite spec id (e.g. pbg_<slug>.composites.<name>) that this simulation runs"
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["name", "claims"],
+      "properties": {
+        "name": {"type": "string"},
+        "path": {"type": ["string", "null"]},
+        "url": {"type": ["string", "null"]},
+        "sha256": {"type": ["string", "null"]},
+        "claims": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "expertDoc": {
+      "type": "object",
+      "required": ["name", "path"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": ["string", "null"]},
+        "description": {"type": ["string", "null"]},
+        "contributor": {"type": ["string", "null"]},
+        "claims_supported": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "referencePdf": {
+      "type": "object",
+      "required": ["bib_key", "path", "sha256"],
+      "properties": {
+        "bib_key": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "minLength": 1},
+        "_metadata_pending": {"type": "boolean"}
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": ["n", "name", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "n": {"type": "integer", "minimum": 1},
+        "name": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+$"},
+        "status": {"enum": ["planned", "baseline_run", "applied", "perturbed_run", "compared", "passed", "failed"]},
+        "objective": {"type": "string"},
+        "simulation": {"type": "string", "description": "Name of the simulation config to run (from workspace.yaml.simulations)"},
+        "datasets":       {"type": "array", "items": {"type": "string"}},
+        "expert_docs":    {"type": "array", "items": {"type": "string"}},
+        "visualizations": {"type": "array", "items": {"type": "string"}},
+        "model_changes": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/model_change"}
+        },
+        "desired_behaviors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string"},
+              "observable": {"type": "string", "description": "Which observable this measures (refs workspace.yaml.observables[].name)"},
+              "condition":  {"type": "string", "description": "Natural-language condition"},
+              "rationale":  {"type": "string"}
+            }
+          }
+        },
+        "acceptance_criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["perturbation", "expected"],
+            "additionalProperties": false,
+            "properties": {
+              "perturbation": {"type": "string"},
+              "expected":     {"type": "string"},
+              "passed":       {"type": "boolean"}
+            }
+          }
+        },
+        "baseline_run":  {"type": "string", "description": "Path under results/ where baseline emitter output is stored"},
+        "perturbed_run": {"type": "string"},
+        "comparison":    {"type": "string"}
+      }
+    },
+    "model_change": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {"enum": ["add_process", "change_config", "rewire", "remove_process"]},
+        "path": {"type": "string"},
+        "process": {"type": "string", "description": "Process class name from the registry (for add_process)"},
+        "config": {"type": "object"},
+        "new_value": {},
+        "wires": {"type": "object"}
+      }
+    }
+  }
+}

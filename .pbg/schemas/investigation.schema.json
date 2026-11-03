@@ -1,0 +1,637 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "investigation.yaml (v1/v2)",
+  "description": "A named collection of Studies grouped under a shared research question, with an explicit cross-study dependency DAG and top-level acceptance criteria. Accepts schema_version 1 (minimal: name/title/question/hypothesis/description/studies/acceptance_criteria) and 2 (current: adds the narrative-spine fields the dnaa-replication investigation evolved — executive, scientific_argument, biological_story, lead, at_a_glance, how_to_read, glossary, guidelines). All v2 fields are optional; a v1 spec validates unchanged. New scaffolds should write schema_version: 2 with the narrative-spine fields present (empty or commented) so they prompt the author to fill them in.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "name",
+    "title"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "description": "1 = legacy v1 (bare name/title/question/hypothesis/description/studies/acceptance_criteria). 2 = current (narrative-spine fields populated). 3 = adds the additive `knowledge` block (derived Concept + canonical-Verdict store). New scaffolds emit 2; a spec is version 3 once a `knowledge` block is authored/persisted. 4 = adds the additive `argument` block (first-class Claims + the Claim->Claim argument graph). New scaffolds emit 2; a spec is version 3 once a `knowledge` block is authored and version 4 once an `argument` block is. Old readers ignore both blocks and still validate."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "URL-safe slug that matches the directory name under investigations/."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable title for the investigation."
+    },
+    "created": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 creation date (YYYY-MM-DD)."
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "planning",
+        "running",
+        "ran",
+        "complete",
+        "failed",
+        "invalid",
+        "archived",
+        "closed"
+      ],
+      "description": "Overall status of the investigation. 'planning' is accepted as an alias for 'planned' for back-compat. 'closed' is the terminal post-merge state set by the close-investigation workflow (`/viva-investigation close <slug>`) after the report.html has been checked in and the PR opened."
+    },
+    "question": {
+      "type": "string",
+      "description": "The overarching research question answered by running all member studies in concert."
+    },
+    "hypothesis": {
+      "type": "string",
+      "description": "Predicted outcome across the full study sequence."
+    },
+    "description": {
+      "type": "string",
+      "description": "Markdown narrative: background, mechanism, study sequence, expected outcome. Superseded for new specs by the v2 `biological_story` (multi-paragraph mechanism prose) + `lead` (3-4 sentence intro) fields, which separate the front-of-textbook summary from the in-depth mechanism narrative. Kept for v1 back-compat."
+    },
+    "studies": {
+      "type": "array",
+      "description": "Ordered list of study slugs that belong to this investigation. Controls dashboard grouping/visibility. The DAG topology is derived from each study's own parent_studies field.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      },
+      "uniqueItems": true
+    },
+    "expert_docs": {
+      "type": "array",
+      "description": "Names of expert_docs entries from workspace.yaml that are relevant to this investigation (cross-reference convenience, not authoritative).",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "description": "Top-level success criteria for the investigation. Each entry maps to a specific expected_behavior[i].name on a member study. The investigation is 'complete' when all entries pass.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "study",
+          "behavior"
+        ],
+        "properties": {
+          "study": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Slug of the member study that owns this criterion."
+          },
+          "behavior": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The expected_behavior[i].name value on the named study."
+          }
+        }
+      }
+    },
+    "executive": {
+      "type": "object",
+      "description": "v2 narrative field — executive summary panel rendered at the top of the report. Lets a reviewer who won't read the studies see what the investigation concluded, where it stands, and what the open decisions are. dnaa-replication example: {what_is_this, verdict, verdict_status, decisions_needed: ['expert opinion on RIDA vs DDAH', ...]}.",
+      "additionalProperties": true,
+      "properties": {
+        "what_is_this": {
+          "type": "string",
+          "description": "One-paragraph 'what an investigation is, and what THIS investigation is about'. Reader-friendly."
+        },
+        "verdict": {
+          "type": "string",
+          "description": "Headline summary of where the investigation currently stands."
+        },
+        "verdict_status": {
+          "type": "string",
+          "description": "Common values: in-progress | passing | passing-with-caveats | failing | inconclusive | not-yet-run."
+        },
+        "decisions_needed": {
+          "type": "array",
+          "description": "Open decisions blocking forward progress. Each entry is a short string or {question, owner, context} object.",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    "scientific_argument": {
+      "type": "object",
+      "description": "v2 narrative field — the structured claim/evidence panel. Separates the main claim from the evidence that supports/contradicts it, the key figures, and known caveats. Distinct from `executive` (which is the bottom-line verdict) — this is the chain of reasoning.",
+      "additionalProperties": true,
+      "properties": {
+        "main_claim": {
+          "type": "string",
+          "description": "The investigation's primary claim, as a single statement."
+        },
+        "evidence_for": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Bullets supporting the main claim. Free-form."
+        },
+        "evidence_against": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Bullets contradicting the main claim. Free-form."
+        },
+        "key_figures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Pointers to viz/report assets supporting the argument (paths or anchor names)."
+        },
+        "caveats": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Known limitations of the argument as currently posed."
+        },
+        "interpretation_ref": {
+          "type": "string",
+          "description": "Path to a longer interpretation document, when one exists."
+        }
+      }
+    },
+    "biological_story": {
+      "type": "string",
+      "description": "v2 narrative field — multi-paragraph plain-English mechanism narrative. The 'textbook chapter' summary of what the investigation is modeling. Markdown allowed. Distinct from `description` (legacy free-form) and `lead` (the 3-4 sentence intro)."
+    },
+    "lead": {
+      "type": "string",
+      "description": "v2 narrative field — 3-4 sentence front-of-textbook intro. The first thing a reader sees. Lands above biological_story in the rendered report."
+    },
+    "at_a_glance": {
+      "type": "array",
+      "description": "v2 narrative field — one-line role per study. Lets a reviewer see what each study CONTRIBUTES to the overall arc without opening any of them. Each entry: {study: <slug>, role: '<one-line role>'}.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "study"
+        ],
+        "properties": {
+          "study": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "role": {
+            "type": "string",
+            "description": "One sentence: what this study contributes to the arc."
+          }
+        }
+      }
+    },
+    "how_to_read": {
+      "type": "string",
+      "description": "v2 narrative field — evaluator tips. 'Read studies in order. Each study's `report.verdict` block is the headline. Open the rendered viz only when a primary test fails.' Markdown allowed."
+    },
+    "glossary": {
+      "type": "array",
+      "description": "v2 narrative field — investigation-local term definitions. Lets a reader who doesn't know the domain look up DnaA-ATP, RIDA, DDAH inline. Each entry: {term, definition}.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "term",
+          "definition"
+        ],
+        "properties": {
+          "term": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "guidelines": {
+      "type": "object",
+      "description": "v2 narrative field — investigation-wide rules: literature anchors, parameter tables, naming conventions, calibration thresholds that every member study should respect. Free-form sub-fields; common ones include `literature_anchors[]`, `parameter_catalog[]`, `naming_conventions`, `calibration_targets`.",
+      "additionalProperties": true
+    },
+    "contributors": {
+      "type": "array",
+      "description": "S5: who built this investigation. Auto-derived by `/viva-investigation close` from `git log --pretty='%an|%ae' <main>..<branch>` plus any agent-session metadata under .pbg/agent-sessions/, then editable by the author. Survives squash-merges where git authors would otherwise be lost. Lets future contributors see who came before and gives credit when others build on top.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Display name (human or agent)."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email (humans) or NULL/placeholder (agents)."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "agent"
+            ],
+            "default": "human",
+            "description": "human = git commit author; agent = recorded via .pbg/agent-sessions/."
+          },
+          "roles": {
+            "type": "array",
+            "description": "Roles played on this investigation. Free-form; common values: designer | implementer | reviewer | agent_runner | data_curator. A single contributor may have multiple roles.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "commits": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Count of commits attributed to this contributor on the investigation branch (since divergence from main). Populated by the close mechanic; informational only."
+          },
+          "sessions": {
+            "type": "array",
+            "description": "For agents: list of session ids (UUIDs from .pbg/agent-sessions/<id>.json) attributed to this contributor.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional free-form acknowledgement (e.g., 'expert review of dnaa-02 implementation')."
+          }
+        }
+      }
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "S5: ISO-8601 timestamp when `/viva-investigation close` stamped the investigation. Set automatically by the close mechanic; not user-edited. Distinct from `created` (start of work)."
+    },
+    "report_url": {
+      "type": "string",
+      "description": "S5: path to the checked-in HTML report. Relative to the investigation directory (typically just 'report.html'). Set automatically by the close mechanic when it copies the rendered report into investigations/<slug>/report.html. Lets the dashboard link to the immutable snapshot of what the investigation produced."
+    },
+    "report_synthesis": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "OPTIONAL authored override/enrichment of the investigation report's finding-first cross-study synthesis. The report generator (vivarium-workbench lib/investigation_report.py) DERIVES this synthesis deterministically from the member studies (AI-free: run-status/evidence-grade/claim separation, stage-grouped integrated findings, contradictions, roadmap, figure ranking) and reuses the canonical two-axis ontology (study_ontology.derive_verdict / derive_execution_status) + the needs-attention validation scan. Any section present and non-empty here REPLACES the corresponding derived section — use it only to correct or hand-author a section the deterministic pass gets wrong; leave it absent to take the derivation. All sub-fields are optional; shapes below mirror the rendered payload.",
+      "properties": {
+        "headline": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Executive-summary override: the one-paragraph verdict for the investigation plus gate/plan-board status. Derived from the plan_board gates when absent."
+        },
+        "stages": {
+          "type": "array",
+          "description": "Integrated findings grouped by investigation stage (og-NN prefix). Each stage: { key, title, studies[], findings[] (quantitative where available), model_dependence (bool) }.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "claim_evidence": {
+          "type": "array",
+          "description": "Claim-evidence map: one row per top-level claim/acceptance criterion. Each: { claim, status (supported|conditional|unsupported|pending|inconclusive), supporting_studies[], contradicting_studies[], figure_refs[] }.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "contradictions": {
+          "type": "array",
+          "description": "Contradiction / uncertainty register. Each: { topic, kind (model-dependence|negative-result|finding-conflict|competing-framework), detail, studies[], discriminating_study }.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "continuity": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Cross-study continuity: DAG edges actually carrying outputs forward + external inputs. { edges[], external_inputs[] }."
+        },
+        "quantitative": {
+          "type": "array",
+          "description": "Quantitative synthesis rows pulled across studies. Each: { metric, value, unit, study, context }.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "roadmap": {
+          "type": "array",
+          "description": "Prioritized next-studies roadmap. Each: { priority (P0|P1|P2), item, basis, acceptance, source }.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "figures_ranked": {
+          "type": "array",
+          "description": "Hand-picked key figures (overrides the automatic best-per-study ranking). Each: { study, figure, caption }.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "studies_index": {
+          "type": "array",
+          "description": "Per-study inventory rows (run status × evidence grade). Each: { slug, title, run_status (ran|planned), grade (supported|qualified|refuted|pending) }.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "knowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Section K (schema v3, additive): the Concept + canonical-Verdict knowledge store for this investigation — a process-bigraph `node`-typed sub-tree, persisted here as an additive block. Derived-first: a read-only pass projects it from canonical membership (`studies[]`), each study's DAG edges, and findings; an authored half may later be merged over the derived projection (authored wins, derived fills, empty never clobbers). Old readers ignore this block. The Progress and Verdict axes are kept INDEPENDENT: operation/execution success never sets a scientific verdict.",
+      "properties": {
+        "concepts": {
+          "type": "object",
+          "description": "Concepts keyed by stable concept_id. A Concept is a persistent, revisable synthesis-grouping over member Studies (many-to-many); it does not own or replace the Studies' immutable evidence.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "question"
+            ],
+            "properties": {
+              "question": {
+                "type": "string",
+                "description": "The unifying subquestion/theme this Concept groups Studies under."
+              },
+              "study_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                },
+                "uniqueItems": true,
+                "description": "Member study slugs (references, never copies)."
+              },
+              "synthesis": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Authored evidence-grounded synthesis; null/absent when only derived. An empty value never clobbers an authored one."
+              },
+              "org_state": {
+                "enum": [
+                  "exploring",
+                  "consolidated",
+                  "reopened"
+                ],
+                "description": "Concept lifecycle (organizational, not execution)."
+              },
+              "derived": {
+                "type": "boolean",
+                "description": "true when this Concept is a projection; false when authored/persisted."
+              },
+              "revisions": {
+                "type": "array",
+                "description": "Append-only revision log; prior groupings/syntheses remain recoverable.",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "ts": {
+                      "type": "string"
+                    },
+                    "op": {
+                      "type": "string",
+                      "description": "The inquiry op that produced this revision (e.g. consolidate, split, reopen, assess, narrate)."
+                    },
+                    "by": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "prior_members": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "prior_synthesis": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "verdicts": {
+          "type": "object",
+          "description": "Per-study canonical verdict records keyed by study slug. The two axes are independent.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "progress": {
+                "enum": [
+                  "proposed",
+                  "planned",
+                  "running",
+                  "completed",
+                  "failed"
+                ],
+                "description": "Execution/workflow axis, projected from the study's execution_status. Never feeds `verdict`."
+              },
+              "verdict": {
+                "enum": [
+                  "unassessed",
+                  "supported",
+                  "qualified",
+                  "inconclusive",
+                  "refuted"
+                ],
+                "description": "Canonical scientific-verdict axis on the tested proposition. `unassessed` is the explicit no-verdict value (study.yaml uses null for the same state). A completed study may be refuted; a failed execution is not a refuted hypothesis."
+              },
+              "verdict_source": {
+                "enum": [
+                  "authored",
+                  "derived"
+                ],
+                "description": "Whether the verdict was authored in study.yaml or derived from findings."
+              },
+              "rationale": {
+                "type": "string",
+                "description": "Short justification citing the evidence."
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Finding ids the verdict cites."
+              },
+              "diverges": {
+                "type": "boolean",
+                "description": "true when an authored study verdict and the derived verdict disagree."
+              }
+            }
+          }
+        }
+      }
+    },
+    "argument": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Section A (schema v4, additive): the Claim + argument-graph store for this investigation (RFC-0005). Derive-first: a read-only pass projects Claims from canonical membership + findings and the argument edges from each study's `parent_relations`; an authored half may be merged over it (authored wins, derived fills, empty never clobbers). Epistemic relations are graph-valued scientific state, NOT process-bigraph numerical wires. Old readers ignore this block.",
+      "properties": {
+        "claims": {
+          "type": "object",
+          "description": "Claims keyed by claim_id (\"claim:<slug>\" or \"claim:<slug>:<arm>\"). A Claim is the first-class epistemic assertion carrying the canonical Verdict.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "proposition",
+              "verdict"
+            ],
+            "properties": {
+              "proposition": {
+                "type": "string",
+                "description": "Precisely worded assertion; derived from study `claim`->`title`->`question`, authored override wins, never fabricated."
+              },
+              "proposition_stub": {
+                "type": "boolean",
+                "description": "True when none of claim/title/question was authored and the proposition is a placeholder."
+              },
+              "verdict": {
+                "enum": [
+                  "unassessed",
+                  "supported",
+                  "qualified",
+                  "inconclusive",
+                  "refuted"
+                ],
+                "description": "Canonical scientific-verdict axis on the proposition; independent of execution/progress."
+              },
+              "scope": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Where the claim holds (from the study's primary_limitation)."
+              },
+              "qualifiers": {
+                "type": "object",
+                "description": "confidence / evidence_tier qualifiers."
+              },
+              "hypothesis": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The study hypothesis the claim answers."
+              },
+              "warrants": {
+                "type": "object",
+                "description": "What licenses the proposition: preregistered thresholds + primary behavior_tests."
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "study / run / finding / figure ids bearing on the claim."
+              },
+              "rebuttals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Counter-evidence: refuting findings, proposed controls, alternatives. Never silently dropped."
+              },
+              "arm_of": {
+                "type": "string",
+                "description": "For an arm claim, the parent study's claim_id (the synthesis claim)."
+              },
+              "derived": {
+                "type": "boolean",
+                "description": "True for the read-only derived projection."
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "description": "The Claim->Claim argument graph (GE). Epistemic graph-valued relations, not numerical process-bigraph connections.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "from",
+              "to",
+              "type"
+            ],
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "Source claim_id."
+              },
+              "to": {
+                "type": "string",
+                "description": "Target claim_id."
+              },
+              "type": {
+                "enum": [
+                  "support",
+                  "challenge",
+                  "prerequisite",
+                  "synthesis"
+                ],
+                "description": "Epistemic edge class."
+              },
+              "relation": {
+                "type": "string",
+                "description": "The source parent_relations relation (builds-on/tests/refutes/alternative-to) or 'arm'."
+              },
+              "derived": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

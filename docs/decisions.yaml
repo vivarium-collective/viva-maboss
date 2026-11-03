@@ -1,0 +1,2 @@
+# Append-only decision log. Each entry: {timestamp, skill, target, summary, source}.
+decisions: []

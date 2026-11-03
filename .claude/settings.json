@@ -1,0 +1,5 @@
+{
+  "env": {
+    "PBG_WORKSPACE": "${workspaceFolder}"
+  }
+}

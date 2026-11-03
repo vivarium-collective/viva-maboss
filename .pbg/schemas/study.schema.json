@@ -1,0 +1,2209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vivarium-collective.github.io/viva-template/schemas/study.schema.json",
+  "title": "study.yaml (v3/v4)",
+  "description": "Schema for a viva-superpowers study definition (studies/<slug>/study.yaml). Accepts schema_version 3 (legacy: baseline is a non-empty list, observables/variants are top-level) and 4 (current: conditions{baseline,variants,model_settings,expert_inputs} groups them, plus the second-tier narrative fields — report, study_card, biological_summary, literature_anchors, design_pivot_required, conclusion_verdicts, runtime, enforced_params, follow_up_of — that the dnaa investigation evolved). All v4 fields are optional; a v3 spec validates unchanged. New scaffolds should write schema_version: 4 with the narrative-spine fields present (empty or commented) so they prompt the author to fill them in.",
+  "type": "object",
+  "required": [
+    "name"
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "baseline"
+      ]
+    },
+    {
+      "required": [
+        "conditions"
+      ]
+    },
+    {
+      "required": [
+        "comparison_operands"
+      ]
+    }
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "comparison_operands": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "operand_a",
+        "operand_b"
+      ],
+      "description": "A comparison study: the two operands being compared. A study with `comparison` needs no baseline/conditions.",
+      "properties": {
+        "operand_a": {
+          "type": "string",
+          "description": "reference/measured operand (e.g. a cultivation group or study id)"
+        },
+        "operand_b": {
+          "description": "compared operand: a named run/study (string) or an inline run spec (object)"
+        }
+      }
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        3,
+        4
+      ],
+      "description": "3 = legacy v3 (baseline/variants/observables at top level). 4 = current (conditions{} grouping + narrative-spine fields populated). New scaffolds emit 4."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Kebab-case slug matching the enclosing directory name (e.g. dnaa-01-expression-dynamics)."
+    },
+    "created": {
+      "type": "string",
+      "description": "ISO-8601 date when this study file was created (YYYY-MM-DD)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "in-progress",
+        "completed",
+        "archived",
+        "planned",
+        "running",
+        "ran",
+        "complete",
+        "failed",
+        "invalid"
+      ],
+      "description": "Lifecycle status. Two enums coexist: the v3 author-set values (draft, in-progress, completed, archived) and the dashboard's runtime sub-state values within a phase (planned, running, ran, complete, failed, invalid). The latter are what the parallel-agent's canonical studies use alongside the top-level `phase:` field. NOTE: superseded for new specs by the six independent multi-axis status fields below (design_status, implementation_status, simulation_status, evaluation_status, gate_status, expert_review_status). Kept for v3 back-compat — existing studies that set only `status:` continue to validate. Pass A infrastructure-feedback roadmap.",
+      "deprecated": true,
+      "x-replaced-by": "execution_status"
+    },
+    "design_status": {
+      "deprecated": true,
+      "x-replaced-by": "execution_status",
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "planned",
+        "drafted",
+        "expert_reviewed",
+        "approved",
+        "designed",
+        "complete",
+        "in_progress",
+        null
+      ],
+      "description": "Multi-axis status (Pass A). How mature the spec/design is. Independent of all other axes. Optional."
+    },
+    "implementation_status": {
+      "deprecated": true,
+      "x-replaced-by": "execution_status",
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "not_started",
+        "partial",
+        "complete",
+        "prototype",
+        "not_run",
+        "smoke_run",
+        "in-progress",
+        "planned",
+        null
+      ],
+      "description": "Multi-axis status (Pass A). Whether the code that backs the study (composites, processes, listeners) has been written. Independent of all other axes. Optional."
+    },
+    "simulation_status": {
+      "deprecated": true,
+      "x-replaced-by": "execution_status",
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "not_run",
+        "running",
+        "ran",
+        "failed",
+        "smoke_run",
+        "completed",
+        "complete",
+        "not_started",
+        "planned",
+        null
+      ],
+      "description": "Multi-axis status (Pass A). Whether the simulations described in simulation_set have been executed. Independent of all other axes. Optional."
+    },
+    "evaluation_status": {
+      "deprecated": true,
+      "x-replaced-by": "execution_status",
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "not_evaluated",
+        "evaluated",
+        "failed_evaluation",
+        "pending_review",
+        "complete",
+        "not_run",
+        "in_progress",
+        "not_started",
+        "planned",
+        null
+      ],
+      "description": "Multi-axis status (Pass A). Whether behavior_tests have been run against the simulation output. Independent of all other axes. Optional."
+    },
+    "gate_status": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "not_started",
+        "blocked",
+        "needs_calibration",
+        "passed",
+        "failed",
+        "stale",
+        "mixed",
+        "in_progress",
+        "partial",
+        "pending",
+        "planned",
+        null
+      ],
+      "description": "Multi-axis status (Pass A). The pipeline-gate verdict — drives downstream unblocking. When set, the dashboard renders this as the headline status pill. Independent of all other axes. Optional. Deprecated (RFC-0006 Tier 3): a projection of the canonical verdict + runs; the DAG gate reads run outcomes / execution_status, not this field.",
+      "deprecated": true,
+      "x-replaced-by": "verdict"
+    },
+    "expert_review_status": {
+      "deprecated": true,
+      "x-replaced-by": "evidence_tier",
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "not_requested",
+        "requested",
+        "reviewed",
+        "approved",
+        "disputed",
+        "pending",
+        null
+      ],
+      "description": "Multi-axis status (Pass A). Whether a domain expert has signed off on the study's framing/conclusions. Independent of all other axes. Optional."
+    },
+    "execution_status": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "proposed",
+        "planned",
+        "running",
+        "completed",
+        "failed",
+        null
+      ],
+      "description": "Two-axis ontology — the EXECUTION axis (what happened), orthogonal to the scientific `verdict`. proposed = identified, not yet planned; planned = defined, awaiting execution; running = execution in progress; completed = finished, results available; failed = could not complete for technical/operational reasons. A negative scientific result is NOT a failed execution — it is `completed` with a `verdict` of refuted/inconclusive. Optional; when absent the dashboard derives it from the legacy status / simulation_status / gate_status fields. Supersedes using `confidence` (Accepted/Investigating/Planned) as a status."
+    },
+    "verdict": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "supported",
+        "qualified",
+        "inconclusive",
+        "refuted",
+        null
+      ],
+      "description": "Two-axis ontology — the SCIENTIFIC VERDICT axis (what the evidence supports), meaningful once execution_status is `completed`. supported = results support the primary hypothesis/prediction; qualified = supported only under specified conditions or assumptions; inconclusive = evidence is insufficient, mixed, or unresolved; refuted = results contradict the tested hypothesis/prediction (an honest negative is a refuted verdict, not an execution failure). A verdict applies to the specific hypothesis being assessed, not the general value of the study. Optional; when absent the dashboard derives it from report.verdict / findings."
+    },
+    "evidence_tier": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "conceptual_demonstration",
+        "mechanistic_prediction",
+        "calibrated",
+        null
+      ],
+      "description": "Two-axis ontology — evidence strength shown as the graph node's Evidence pips: conceptual_demonstration (proof-of-concept) / mechanistic_prediction / calibrated (against data). Orthogonal to execution_status and verdict. Optional."
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "Design",
+        "Build",
+        "Simulate",
+        "Evaluate",
+        "Decide",
+        "Evidence"
+      ],
+      "description": "Optional declaration of the study's current high-level phase. The 5-phase lifecycle (Design → Build → Simulate → Evaluate → Decide) is the canonical coarse-grained coordinate; the existing `status:` field captures the finer-grained runtime state within a phase. The enum is capitalized — the dashboard's study-detail.html template reads `study.phase` directly. If absent, the dashboard infers the phase from status + the presence of artifacts (spec fields filled, runs.db exists, etc.). See docs/concepts/vivarium-dashboard-model.md for the canonical 8-section structure.",
+      "deprecated": true,
+      "x-replaced-by": "execution_status"
+    },
+    "claim": {
+      "type": "string",
+      "description": "One-sentence headline of the compositional idea this study tests — the CLAIM in the study Overview (Claim → Test → Result), and the investigation-graph node's 'Finds' line. Authored concise and direct."
+    },
+    "experiment": {
+      "type": "string",
+      "description": "One-paragraph statement of what was built and run to test the claim — the TEST in the study Overview. Supersedes the older `objective` field."
+    },
+    "result": {
+      "type": "string",
+      "description": "One-paragraph statement of what happened and what it establishes — the RESULT in the study Overview, supported by `findings`. Supersedes the prose `conclusion` blob for the Overview."
+    },
+    "objective": {
+      "type": "string",
+      "description": "DEPRECATED for new studies — use `experiment` (the study Overview's Test). One-paragraph statement of what this study measures or demonstrates."
+    },
+    "description": {
+      "type": "string",
+      "description": "Extended background / context. Multi-line YAML strings are fine."
+    },
+    "hypothesis": {
+      "type": "string",
+      "description": "Testable prediction the study checks — a DISTINCT field from `claim` (the asserted finding) and `experiment` (what was built); they legitimately coexist. Optional for exploratory studies."
+    },
+    "conclusion": {
+      "deprecated": true,
+      "x-replaced-by": "result",
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "DEPRECATED — superseded by `result` for the Overview. Filled in after analysis; leave null while status is draft/in-progress."
+    },
+    "baseline": {
+      "type": "array",
+      "description": "CANONICAL: always a non-empty list, even if there is only one architecture. Each entry is a named simulation configuration. Canonical since v3; do NOT use the old single-dict form.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "composite"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Short identifier for this baseline run (e.g. 'baseline', 'wild-type')."
+          },
+          "composite": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+            "description": "Dotted Python import path to the composite factory function (e.g. v2ecoli.composites.baseline.baseline)."
+          },
+          "params": {
+            "type": "object",
+            "description": "Free-form keyword arguments forwarded to the composite factory."
+          }
+        }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "description": "List of named parameter perturbations applied on top of baseline.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "interventions": {
+      "type": "array",
+      "description": "Structural modifications (add/remove process, rewire) applied before running.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "add_process",
+              "remove_process",
+              "change_config",
+              "rewire"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "observables": {
+      "deprecated": true,
+      "x-replaced-by": "readouts",
+      "type": "array",
+      "description": "DEPRECATED (v3) — superseded by `readouts`. Store-path bindings to observe during runs.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "store_path"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "store_path": {
+            "type": "string"
+          },
+          "units": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "visualizations": {
+      "type": "array",
+      "description": "Declared visualizations for this study's outputs.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "config": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "runs": {
+      "deprecated": true,
+      "x-replaced-by": "runs.db",
+      "type": "array",
+      "description": "DEPRECATED in v4. Use runs.db (per-study SQLite) as the source of truth — runs_meta + history. F2 made the DB canonical; this field remains only for v3 back-compat and is no longer written by /viva-study run-baseline. Will be removed in a future schema bump.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed"
+            ]
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": "string"
+          },
+          "results_path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tests": {
+      "description": "Either a test-configuration block (auto_discover, data_source, pytest_args — usually auto-managed) or a v4 per-test item array (the band/pass_if shape used by dnaa-style studies). Both forms keep additionalProperties:true for forward compat.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Test configuration block. Usually auto-managed.",
+          "additionalProperties": true,
+          "properties": {
+            "auto_discover": {
+              "type": "boolean"
+            },
+            "data_source": {
+              "type": "string",
+              "description": "Where the dashboard reads test inputs from. Common values: runs_db, emitter, file, latest_run. Free-form for forward compat across dashboard versions."
+            },
+            "pytest_args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "last_results": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true,
+              "properties": {
+                "passed": {
+                  "type": "integer"
+                },
+                "failed": {
+                  "type": "integer"
+                },
+                "errors": {
+                  "type": "integer"
+                },
+                "timestamp": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "array",
+          "description": "v4 per-test items (the band/pass_if shape used by dnaa-style studies). Each item declares a named test with a measure, acceptance criterion, and optional citation.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "classification": {
+                "type": "string",
+                "description": "Common values: primary, secondary, supporting, diagnostic. Free-form for forward compat."
+              },
+              "question": {
+                "type": "string"
+              },
+              "measure": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  }
+                }
+              },
+              "pass_if": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "op": {
+                    "type": "string"
+                  },
+                  "low": {
+                    "type": "number"
+                  },
+                  "high": {
+                    "type": "number"
+                  },
+                  "threshold": {
+                    "type": "number"
+                  },
+                  "tolerance": {
+                    "type": "number"
+                  }
+                }
+              },
+              "status": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "cites": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "bib_keys (in references/papers.bib) sourcing the acceptance band or criterion for this test."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "references": {
+      "description": "References supporting this study. May be an object (keyed sections) or an array of {file, section?} items.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "file": {
+                "type": "string"
+              },
+              "section": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Sectioned references object: keys are section names (e.g. 'expert', 'bib_keys', 'claims'), values are lists of strings.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "implementation_tasks": {
+      "description": "Work items for implementing this study. May be a string (free-form) or a list of strings.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "parent_studies": {
+      "type": "array",
+      "description": "Unified typed relations to parent studies (RFC-0006 Tier 2): each entry carries the organizational gate (condition), the epistemic relation, and/or the computational provides. Absorbs parent_relations / builds_on / upstream_state_consumed.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Legacy bare-string form: parent slug. Normalized to {study: <slug>, condition: tests-passed} at load time."
+          },
+          {
+            "type": "object",
+            "required": [
+              "study"
+            ],
+            "properties": {
+              "study": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Slug of the parent study."
+              },
+              "condition": {
+                "type": "string",
+                "enum": [
+                  "tests-passed",
+                  "ran",
+                  "complete"
+                ],
+                "default": "tests-passed",
+                "description": "When the parent satisfies this condition, this study is unblocked. tests-passed = parent.tests.last_results.passed > 0 AND failed == 0. ran = parent.status in {ran, complete}. complete = parent.status == complete."
+              },
+              "relation": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "builds-on",
+                  "tests",
+                  "motivates",
+                  "alternative-to",
+                  null
+                ],
+                "default": "builds-on",
+                "description": "Investigation-graph edge TYPE from the parent to this study. builds-on = this study inherits a model/method/finding from the parent; tests = this study evaluates a claim from the parent; motivates = the parent raised the question this study investigates; alternative-to = the two studies are competing approaches (rendered undirected). Optional; defaults to builds-on. Legacy values (leads-to, model-input, refutes, precedes, evidence, calibrates-threshold) are accepted by the dashboard via an alias map but should be migrated to the four canonical types."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "type": "object",
+        "properties": {
+          "study": {
+            "type": "string",
+            "description": "Parent study slug."
+          },
+          "condition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Gate condition (organizational), e.g. tests-passed / ran."
+          },
+          "relation": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Scientific (epistemic) relation: builds-on/tests/refutes/motivates/alternative-to."
+          },
+          "rationale": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provides": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "State this parent provides downstream (computational)."
+          },
+          "artifact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "deprecated": true,
+      "x-replaced-by": "pipeline_gate.prerequisites"
+    },
+    "parent_relations": {
+      "type": "array",
+      "description": "Investigation-graph edge TYPING, parallel to parent_studies / pipeline_gate.prerequisites. Each item types the relationship from an earlier study to this one for the graph; edge EXISTENCE still comes from prerequisites / interface inputs. Use when the typed relation (builds-on/tests/motivates/alternative-to) differs from the plain dependency, or to type edges that are not gating prerequisites.",
+      "items": {
+        "type": "object",
+        "required": [
+          "study",
+          "relation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "study": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Slug of the earlier (parent) study the edge points from."
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "builds-on",
+              "tests",
+              "motivates",
+              "alternative-to"
+            ],
+            "description": "Edge type from the parent to this study. builds-on = inherits a model/method/finding; tests = evaluates a claim from the parent; motivates = the parent raised the question this study investigates; alternative-to = competing approaches (rendered undirected). Legacy values (leads-to, model-input, refutes, precedes) are alias-mapped by the dashboard but should be migrated here."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Optional one-line reason for the edge (e.g. 'uses carbon-fixation fluxes as inputs to the metabolic network'). Shown on edge hover."
+          }
+        }
+      },
+      "deprecated": true,
+      "x-replaced-by": "pipeline_gate.prerequisites"
+    },
+    "expected_behavior": {
+      "type": "array",
+      "description": "List of testable behavioral expectations. Distinct from `behavior_tests`. Array of objects, each with a required `name`.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "expert_questions": {
+      "description": "Advisory: open questions to pose to domain experts. Free-form strings or list.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "purpose": {
+      "type": "object",
+      "description": "Section 1 of the canonical 8-section structure. Replaces v3 question + hypothesis + objective. Sub-keys: question, mechanism, expected_outcome (all free-form strings).",
+      "additionalProperties": true,
+      "properties": {
+        "question": {
+          "type": "string"
+        },
+        "mechanism": {
+          "type": "string"
+        },
+        "expected_outcome": {
+          "type": "string"
+        }
+      }
+    },
+    "pipeline_gate": {
+      "type": "object",
+      "description": "Section 2 of the canonical 8-section structure. Captures study-level DAG semantics: which parent studies must be done, which child studies become unblocked, and what counts as 'safe to proceed'. Supersedes parent_studies as the source-of-truth (parent_studies remains as a v3 back-compat shim).",
+      "additionalProperties": true,
+      "properties": {
+        "prerequisites": {
+          "type": "array",
+          "description": "List of parent dependencies. Each entry is one of: (a) a bare slug string (legacy form), (b) an object {study, condition: tests-passed | ran | complete} (the existing object form, identical to parent_studies entries), or (c) Pass A extended object form with required_gate_status / outputs_used / artifact_hashes for stale-propagation and downstream-validation. All new fields are optional.",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Legacy bare-string form: parent slug."
+              },
+              {
+                "type": "object",
+                "required": [
+                  "study"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "study": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                    "description": "Slug of the parent study."
+                  },
+                  "condition": {
+                    "type": "string",
+                    "enum": [
+                      "tests-passed",
+                      "ran",
+                      "complete"
+                    ],
+                    "default": "tests-passed",
+                    "description": "When the parent satisfies this condition, this study is unblocked. Same semantics as parent_studies[].condition."
+                  },
+                  "relation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "builds-on",
+                      "tests",
+                      "refutes",
+                      "motivates",
+                      "alternative-to",
+                      null
+                    ],
+                    "default": "builds-on",
+                    "description": "Investigation-graph edge TYPE from the parent to this study. Same vocabulary as parent_studies[].relation: builds-on | tests | motivates | alternative-to. Optional; defaults to builds-on. Legacy values are alias-mapped by the dashboard but should be migrated."
+                  },
+                  "required_gate_status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "not_started",
+                      "blocked",
+                      "needs_calibration",
+                      "passed",
+                      "failed",
+                      "stale",
+                      "mixed",
+                      "in_progress",
+                      "partial",
+                      "pending",
+                      "planned",
+                      null
+                    ],
+                    "description": "Pass A extension. The minimum gate_status the parent must reach for this dependency to count. Independent of `condition` — both can be specified; the dashboard ANDs them."
+                  },
+                  "outputs_used": {
+                    "type": "array",
+                    "description": "Pass A extension. Named outputs (readouts, derived metrics) from the parent that this study actually consumes. Lets the linter detect over-broad dependencies and lets the dashboard show targeted dataflow edges.",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "artifact_hashes": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Pass A extension. Hashes of upstream artifacts this study was last validated against. When the parent regenerates an artifact whose hash diverges, the dashboard flips this study's gate_status to `stale`. All sub-fields optional.",
+                    "properties": {
+                      "model_commit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "parca_cache": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "analysis_script": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  },
+                  "provides": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Prose description of the state this parent provides downstream (from the former upstream_state_consumed[].provides)."
+                  },
+                  "rationale": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Why this relation holds (from the former parent_relations[].rationale)."
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "enables": {
+          "type": "array",
+          "description": "List of child study slugs unblocked when this study's primary tests pass.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "proceed_condition": {
+          "type": "string",
+          "description": "Free-form description of when downstream studies may safely start."
+        },
+        "blocks_until_resolved": {
+          "type": "string",
+          "description": "Free-form description of what happens to the pipeline if primary tests fail."
+        },
+        "gate_evaluator": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Declarative evaluator that backs the top-level gate_status pill. `expr` references behavior_test names; the dashboard evaluates it after the latest run and writes `result` + `blocked_by`. Lets the dashboard compute gate state without parsing the prose in proceed_condition / blocks_until_resolved.",
+          "properties": {
+            "expr": {
+              "type": "string",
+              "description": "Boolean expression over behavior_test outcomes. Common form: `tests['<name>'].result == 'PASS' AND tests['<other>'].result == 'PASS'`. Free-form so workspaces can adopt their own DSL."
+            },
+            "result": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "not_started",
+                "blocked",
+                "needs_calibration",
+                "passed",
+                "failed",
+                "stale",
+                "mixed",
+                "in_progress",
+                "partial",
+                "pending",
+                "planned",
+                null
+              ],
+              "description": "Last-computed verdict. Mirrors the gate_status enum so the dashboard can lift it directly. `not_started` when the evaluator ran but the study has no coded behavior_tests to evaluate; null when the evaluator has not been run yet."
+            },
+            "blocked_by": {
+              "type": "array",
+              "description": "POPULATED — list of behavior_test names whose failure or absence is blocking the gate. Empty when result is 'passed'.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "evaluated_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "ISO-8601 timestamp of the last evaluation. Lets the dashboard mark the verdict as stale when behind a fresher simulation."
+            }
+          }
+        }
+      }
+    },
+    "simulation_set": {
+      "type": "array",
+      "description": "Section 3 of the canonical 8-section structure. Replaces v3 variants + interventions. Array-only (the v3 object form was removed in #76). Each item is a run plan with a required `name`. `kind: single` (default, absent) is free-form; `kind: sweep` is a structured Cartesian-product parameter sweep whose `axes` are validated.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Optional free-form run-type label (e.g. `simulation`, `analysis`, `parca`, `sensitivity_analysis`). The reserved value `sweep` additionally triggers structured-sweep validation (`axes` required)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "axes": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Swept axes (sweep entries). Multiple axes = Cartesian product.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "parameter",
+                "values"
+              ],
+              "properties": {
+                "parameter": {
+                  "type": "string",
+                  "description": "Dotted path or parameter id."
+                },
+                "values": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "Discrete values to sweep over."
+                }
+              }
+            }
+          },
+          "runs": {
+            "type": "array",
+            "description": "POPULATED AFTER EXECUTION. Each entry: {axis_values, seed, run_id, metrics, test_results: {test_name: pass|fail|error|skipped}}.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "axis_values": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "seed": {
+                  "type": "integer"
+                },
+                "run_id": {
+                  "type": "string"
+                },
+                "metrics": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "test_results": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string",
+                    "enum": [
+                      "pass",
+                      "fail",
+                      "error",
+                      "skipped"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "sweep"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "axes"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "model_change": {
+      "description": "Section 4 of the canonical 8-section structure (paired with implementation_requirements). What code changes in the composite. Object shape is preferred; string shape accepted for terse summaries.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "base_model": {
+              "type": "string"
+            },
+            "new_processes": {
+              "type": "array"
+            },
+            "new_state_variables": {
+              "type": "array"
+            },
+            "new_parameters": {
+              "type": "array"
+            },
+            "modified_processes": {
+              "type": "array"
+            },
+            "new_listeners": {
+              "type": "array"
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      ]
+    },
+    "key_assumptions": {
+      "type": "array",
+      "description": "Cross-cutting field paired with section 4 (Build). Short biological context — assumption strings. Long-form lit review belongs in references/notes/<bib-key>.md, not here.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Section 5b: the study's declared interface contract — the typed input/output port face it expects of the composite it runs. The study-audit reconciles this against the composite's resolved process-contract face (contract_spine.contract_face_diff), and readout_validation checks readouts against it. Optional and additive; studies without it still validate.",
+      "properties": {
+        "face": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Typed port face. inputs/outputs each map a port name to a bigraph port-type (_type required; _units/_min/_max optional, typed when present).",
+          "properties": {
+            "inputs": {
+              "$ref": "#/$defs/portFace"
+            },
+            "outputs": {
+              "$ref": "#/$defs/portFace"
+            }
+          }
+        }
+      }
+    },
+    "readouts": {
+      "type": "array",
+      "description": "Section 5 of the canonical 8-section structure. Replaces v3 observables. Each readout declares what is collected from a simulation run and from where, plus its availability status. Canonical new studies use index_by + optional aggregate; older studies may use identifier or store_path (both tolerated via additionalProperties:true).",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "store_path": {
+            "type": "string",
+            "description": "DEPRECATED (tolerated for back-compat). Dotted store path to the observable. Use index_by for new readouts. Common values: 'bulk.ID[c]', 'listeners.path.to.field', 'derived'."
+          },
+          "identifier": {
+            "type": "string",
+            "description": "DEPRECATED (tolerated for back-compat). Free-text identifier string (dnaa-style). Parsed by readout_resolver into a canonical selector. Common forms: 'listeners.path[int]', 'bulk ID[c]', 'bulk A[c] / (B[c] + C[c])'. Use index_by for new readouts."
+          },
+          "index_by": {
+            "type": "object",
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": true,
+            "description": "Canonical selector: identifier-system lookup. `type` names the catalog; `value` is the key. New readouts should use this form. Extra fields allowed for workspace-specific dialects.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Identifier catalog name. Canonical enum: bulk_id | monomer_id | listener_id | literal_index. Free-form for workspace-specific catalogs (additionalProperties:true).",
+                "examples": [
+                  "bulk_id",
+                  "monomer_id",
+                  "listener_id",
+                  "literal_index",
+                  "rna_id",
+                  "tf_id"
+                ]
+              },
+              "value": {
+                "description": "String for symbolic IDs (e.g. 'PD03831[c]'), integer for literal_index lookups.",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              }
+            }
+          },
+          "aggregate": {
+            "type": "object",
+            "description": "Optional aggregation operator applied to the selected series before evaluation. Only set this when the study explicitly requires an aggregation; do NOT infer it from prose annotations. Evaluator (#6) applies this after selecting the observable.",
+            "additionalProperties": true,
+            "required": [
+              "op"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "sum",
+                  "mean",
+                  "max",
+                  "min"
+                ],
+                "description": "Aggregation operation. sum | mean | max | min."
+              },
+              "over": {
+                "type": "array",
+                "description": "Optional list of observable IDs to aggregate over (for multi-observable sums).",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "units": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "examples": [
+              "primary",
+              "measured",
+              "available",
+              "derived-needed",
+              "aspirational"
+            ],
+            "description": "Availability/classification of this readout. Common values: primary (main observable for this study), measured (supporting observable), available (plumbed today), derived-needed (needs a listener), aspirational (deferred). Kebab-case enforced via pattern; values are free-form for forward compat."
+          },
+          "blocked_by_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "description": "Human-readable notes about this readout (biological context, data source, etc.)."
+          },
+          "cites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "bib_keys (in references/papers.bib) sourcing the acceptance band or observable value for this readout."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "behavior_tests": {
+      "type": "array",
+      "description": "Section 6 of the canonical 8-section structure. Replaces v3 expected_behavior. Note the field is named behavior_tests because `tests:` is dashboard-v4 reserved (for the auto_discover/data_source/pytest_args config block). Each test maps a (measure, pass_if) pair onto a named simulation in simulation_set.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "classification": {
+            "type": "string",
+            "description": "Common values: primary, supporting, diagnostic, regression. Free-form for forward compat."
+          },
+          "description": {
+            "type": "string"
+          },
+          "measure": {
+            "type": [
+              "string",
+              "object"
+            ],
+            "additionalProperties": true,
+            "properties": {
+              "kind": {
+                "type": "string"
+              }
+            }
+          },
+          "pass_if": {
+            "type": [
+              "string",
+              "object"
+            ],
+            "additionalProperties": true,
+            "properties": {
+              "op": {
+                "type": "string"
+              }
+            }
+          },
+          "units": {
+            "type": "string"
+          },
+          "requires_simulation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocked_by_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "calibration_anchor": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Optional block surfacing literature-vs-model divergences as part of the test, not just pass/fail. Lets the dashboard show whether a failing test is a calibration problem, a threshold-vs-reality mismatch, or a conceptual disagreement.",
+            "properties": {
+              "observed_value": {
+                "description": "Value measured against the live model (populated by /viva-study preview-viz or run-tests). Numeric in most cases; string allowed for categorical outcomes.",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "literature_target": {
+                "description": "Target value drawn from the cited literature (typically the midpoint of the expected band). Hand-authored.",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "divergence_factor": {
+                "type": "number",
+                "description": "Auto-computed: |observed_value - literature_target| (or observed/literature for ratio scales). The dashboard renders an alarm when this exceeds the workspace's threshold."
+              },
+              "resolution": {
+                "type": "string",
+                "enum": [
+                  "model",
+                  "thresholds",
+                  "concept",
+                  "unresolved"
+                ],
+                "description": "Expert verdict on what to do about the divergence. `model` = recalibrate the model; `thresholds` = widen the behavior_test band; `concept` = the test or hypothesis itself needs revision; `unresolved` = pending expert review."
+              },
+              "cites": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Bib keys backing the literature_target. May overlap with the parent test's cites."
+              }
+            }
+          },
+          "cites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "conclusion_logic": {
+      "type": "object",
+      "description": "Cross-cutting field paired with section 6 (Tests). Explicit if-pass / if-fail mapping; separates implementation success from biological validation.",
+      "additionalProperties": true,
+      "properties": {
+        "if_primary_tests_pass": {
+          "type": [
+            "object",
+            "string"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "implementation_status": {
+              "type": "string"
+            },
+            "biological_validation": {
+              "type": "string"
+            },
+            "pipeline_unblocks": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "if_primary_tests_fail": {
+          "type": [
+            "object",
+            "string"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "diagnose": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "block_downstream": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "description": "Section 7 of the canonical 8-section structure. Explicit out-of-scope claims. Prevents overclaim from a passing test.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "implementation_requirements": {
+      "type": "array",
+      "description": "Section 8 of the canonical 8-section structure (paired with model_change). Array of concrete actionable items, each with a required `title`.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Common values: listener, parameter_hook, process, data. Free-form for forward compat."
+          },
+          "title": {
+            "type": "string"
+          },
+          "effort": {
+            "type": "string",
+            "description": "Common values: XS, S, M, L, XL."
+          },
+          "description": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defer_until": {
+            "type": "string"
+          },
+          "unblocks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    "bibliography": {
+      "type": "object",
+      "description": "Renamed from references because `references:` is dashboard-v4-reserved (list of {file} shape). Keys are section names (e.g. 'expert', 'bib_keys'), values are lists of strings. Free-form additional sections allowed.",
+      "additionalProperties": true
+    },
+    "discovery_implications": {
+      "type": "object",
+      "description": "Richer Decide-phase synthesis, rendered as the dashboard's 'Discovery implications' section: where this study's results leave the mechanism model and what to investigate next. All sub-fields optional; absent => the section is omitted. The rigor scorecard (pbg_superpowers.rigor) flags a study declaring neither this nor follow_up_studies with a `next_steps` gap. Its `followup_study_proposals` are seedable via /viva-study seed-from-followup (the richer path).",
+      "additionalProperties": true,
+      "properties": {
+        "resolved_uncertainties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "What this study settled."
+        },
+        "remaining_uncertainties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "What is still open after this study."
+        },
+        "alternate_hypotheses": {
+          "type": "array",
+          "description": "Competing explanations not yet excluded, with what would discriminate them.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "hypothesis": {
+                "type": "string"
+              },
+              "why_plausible": {
+                "type": "string"
+              },
+              "mechanism_elements_affected": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "discriminating_observables": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "followup_study_proposals": {
+          "type": "array",
+          "description": "Richer variant of the top-level followup_proposals; same seed flow.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "followup_proposals": {
+      "type": "array",
+      "description": "Decide-phase output. Each entry is a proposal for a follow-up study motivated by a gap this study revealed. Lifted into a child study via /viva-study seed-from-followup, which stamps the child with `seeded_from:` and auto-adds the parent to its `pipeline_gate.prerequisites`.",
+      "items": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Slug, unique within this study's followup_proposals."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short human-readable proposal title."
+          },
+          "motivation": {
+            "type": "string",
+            "description": "What gap in this study motivates the follow-up."
+          },
+          "hypothesized_mechanism": {
+            "type": "string",
+            "description": "Optional. The missing biology/process the follow-up would add. Becomes the seeded child's model_change: if no explicit seed.model_change is provided."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "accepted",
+              "rejected",
+              "seeded"
+            ],
+            "default": "proposed",
+            "description": "Lifecycle of the proposal itself. Flipped to `seeded` automatically by /viva-study seed-from-followup."
+          },
+          "seeded_study": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Set when status == seeded. Slug of the child study created from this proposal."
+          },
+          "seed": {
+            "type": "object",
+            "description": "Optional. Verbatim seed fields transferred to the child study.yaml at seed time. Any shape accepted; common keys mirror the v3 study fields below.",
+            "additionalProperties": true,
+            "properties": {
+              "purpose": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "question": {
+                    "type": "string"
+                  },
+                  "mechanism": {
+                    "type": "string"
+                  },
+                  "expected_outcome": {
+                    "type": "string"
+                  }
+                }
+              },
+              "key_assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "model_change": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "simulation_set": {
+                "oneOf": [
+                  {
+                    "type": "array"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                ]
+              },
+              "pipeline_gate": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "findings": {
+      "description": "First-class study findings (Pass A + Pass 10A; see notes/2026-05-16-findings-protocol.md). Each finding states something we learned and (optionally) ties it back to literature, expert references, and full reproducibility provenance. Findings items are flexible; `kind` and `status`, when present, are enum-constrained. Sub-objects are optional with loose internal shape (`additionalProperties: true`) so authors can experiment with fields beyond the minimum enforced here.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$",
+                "description": "Stable slug — typically `F-01`, `F-02`, ... — unique within this study."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "biological",
+                  "computational",
+                  "methodological",
+                  "mechanistic"
+                ],
+                "description": "Pass 10A. What category of claim this finding makes. biological = a claim about the modeled system's biology (matches/contradicts/extends literature). computational = a software/wiring/listener bug or correctness finding. methodological = a finding about how studies should be run (sample size, aggregation, evaluation pipeline)."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "planned",
+                  "confirms",
+                  "partial",
+                  "contradicts",
+                  "novel",
+                  "blocked",
+                  "informational",
+                  "open",
+                  "refutes"
+                ],
+                "description": "Pass 10A. How the finding relates to its expected reference. planned = a design-phase target finding stated before the study runs (no result yet); replaced by one of the realized values once evidence exists. confirms = model matches expectation. partial = model matches some aspects. contradicts = model diverges from expectation. novel = no prior expectation; finding surfaces something new."
+              },
+              "statement": {
+                "type": "string",
+                "description": "One-paragraph English claim. The headline a reader scans."
+              },
+              "evidence": {
+                "type": [
+                  "object",
+                  "string"
+                ],
+                "additionalProperties": true,
+                "description": "Pass 10A. Optional. Where the finding came from. Common keys: from_run (run name), from_test (behavior_test name), observed (scalar/string measurement), units, window, reduction, smoking_gun (log/trace/diff), discovered_during (free-form provenance note). All sub-fields optional and loose."
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Pass 10A. Optional. The literature/reference comparator the finding is being judged against. Common keys: cites (list of bib_keys from references/papers.bib), range ([low, high]) OR threshold (number), summary (one-paragraph plain-English reference claim). All sub-fields optional and loose."
+              },
+              "expert_reference": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Pass 10A. Optional. Pointer into a workspace expert PDF. Common keys: doc (expert_doc id from workspace.yaml.expert_docs), section (e.g. '§4.1'), quote (verbatim PDF excerpt), note (curator gloss when no clean quote exists). All sub-fields optional and loose."
+              },
+              "explanation": {
+                "type": "string",
+                "description": "Pass 10A. Optional. Multi-paragraph rationale — why we believe the finding, alternatives ruled out."
+              },
+              "next_action": {
+                "type": "string",
+                "description": "Pass 10A. Optional. Concrete one-liner — often 'Seed follow-up X' or 'Re-run with Y'."
+              },
+              "obsoleted_by": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$",
+                "description": "Pass 10A. Optional. ID of a later finding that supersedes this one. Lets findings be append-only across runs while still chaining staleness."
+              },
+              "provenance": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "Pass A finding_provenance. Full reproducibility metadata for a single finding. All sub-fields optional — populate what you have. Lets a reader (or downstream linter) check whether the finding is still backed by the current artifacts.",
+                "properties": {
+                  "run_ids": {
+                    "type": "array",
+                    "description": "IDs of runs (from runs.db) the finding was extracted from.",
+                    "items": {
+                      "type": [
+                        "string",
+                        "integer"
+                      ]
+                    }
+                  },
+                  "simulation_config_hash": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Hash of the simulation config (composite + params) used to produce the underlying runs."
+                  },
+                  "model_commit_hash": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Git commit of the model/composite code that produced the underlying runs."
+                  },
+                  "parca_cache_hash": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Hash of the parca/sim_data cache used (when relevant)."
+                  },
+                  "random_seeds": {
+                    "type": "array",
+                    "description": "Random seeds the underlying runs were executed with.",
+                    "items": {
+                      "type": [
+                        "integer",
+                        "string"
+                      ]
+                    }
+                  },
+                  "analysis_script": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Path or dotted function reference to the analysis code that derived the finding from raw output."
+                  },
+                  "evaluator_version": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Version string of the evaluator/scorer that produced the finding."
+                  },
+                  "raw_data_artifact": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Path or URI to raw output (e.g. runs.db path, emitter SQLite, NumPy archive)."
+                  },
+                  "metric_table_artifact": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Path or URI to a structured metric table summarizing the finding (e.g. CSV/Parquet)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
+    },
+    "seeded_from": {
+      "type": "object",
+      "description": "Provenance stamp set automatically by /viva-study seed-from-followup when this study is created from a parent's followup_proposals entry. Queryable lineage: `grep -r 'seeded_from' studies/*/study.yaml` finds all seeded children. Pass 10B adds an optional `finding:` field, populated when the child was seeded from a specific finding via `--from-finding <id>`; this lets follow-up lineage trace not just which proposal seeded which child but which *finding* on the parent motivated the follow-up.",
+      "additionalProperties": true,
+      "properties": {
+        "study": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "description": "Parent study slug. Optional individually (back-compat; Pass 8 + Pass 10B treat all three sub-fields as independently optional)."
+        },
+        "proposal_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Proposal id within the parent's followup_proposals list. Optional individually."
+        },
+        "finding": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$",
+          "description": "Pass 10B. Optional. Finding id (e.g. `F-03`) on the parent study that motivated this seeded child. Set automatically when `/viva-study seed-from-followup --from-finding <id>` is used. Enables queries like `grep -r 'finding: F-' studies/*/study.yaml` to trace finding-to-followup lineage."
+        }
+      }
+    },
+    "follow_up_of": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "v4 narrative field. Slug of the study this one is a parallel/cleanup follow-up of (e.g. dnaa-02f follow_up_of: dnaa-02). Distinct from `seeded_from` (which is set automatically by /viva-study seed-from-followup) and from `parent_studies` (which is a DAG dependency). Lets a study explicitly mark itself as a sibling that runs in parallel to resolve an unresolved tension surfaced by the parent."
+    },
+    "runtime": {
+      "type": "object",
+      "description": "v4 narrative field. Per-study runtime/execution overrides. Read by the dashboard's run handlers. All sub-fields optional — populate only what differs from workspace defaults.",
+      "additionalProperties": true,
+      "properties": {
+        "subprocess_timeout_s": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Override the workspace subprocess timeout for this study's runs. Useful for slow-cycle conditions (e.g. acetate) where the default 600s is too short."
+        },
+        "default_emitter": {
+          "type": "string",
+          "enum": [
+            "sqlite",
+            "xarray"
+          ],
+          "description": "Per-study emitter override. Defaults to workspace.yaml.runtime.default_emitter; the dashboard framework default is now xarray (zarr), with sqlite as the explicit opt-out. Set to sqlite for studies that need the unstructured-state SQLite history (e.g. unique-molecule snapshots); xarray suits multi-generation zarr pipelines."
+        },
+        "max_generations": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Optional cap on multi-generation runs. Framework default is single-generation (run_with_division stops at first division). Set this when the workspace owns its own multi-gen loop (e.g. v2ecoli/library/xarray_run.py)."
+        },
+        "post_run_scripts": {
+          "type": "array",
+          "description": "Dotted Python paths or executable script paths to invoke after each run completes. Each entry receives the runs.db row + the run's emit_paths. Used for in-workspace post-processing without bloating the framework run path.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "enforced_params": {
+      "type": "array",
+      "description": "v4 narrative field. Composite-parameter values the study requires be applied (param_enforcement gate). Array of objects, each with a required `name` (plus e.g. `value`, `source`). Mismatches surface as `ParamViolation` entries on the run row.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "description": "v4 narrative field — the conditions block. Replaces top-level baseline/variants/observables for v4 specs, alongside `model_settings` (tunable parameter catalog with current/default/range/cites) and `expert_inputs` (one-off knobs an expert can twist via the dashboard). The lib/spec_migration.py `_project_v4_redesign_to_legacy_view` projects this to the legacy v3 view for code paths that haven't been updated yet, so v4 specs work everywhere a v3 spec does.",
+      "additionalProperties": true,
+      "properties": {
+        "baseline": {
+          "type": [
+            "object",
+            "array"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "additionalProperties": true,
+          "description": "Canonical v4 shape is an object: either a single {composite, params} config or a map of named conditions. An array of baseline objects is also accepted as a superset. For multiple baseline composites in v4, use a v3 spec or use sweep-style simulation_set entries.",
+          "properties": {
+            "composite": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "variants": {
+          "type": "array",
+          "description": "Same shape as v3 top-level variants[].",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "model_settings": {
+          "type": "array",
+          "description": "Tunable parameter catalog. Each entry: {name, default, current, range: [low, high], cites: [bib_keys], notes}. Lets the dashboard show 'this study is configured with X = 0.046 (default 0.046, lit range [0.01, 0.1] per Boesen2024)' for every knob, and lets the param_enforcement linter compare current vs default for drift.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "default": {},
+              "current": {},
+              "range": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "[low, high] bounds from the literature."
+              },
+              "units": {
+                "type": "string"
+              },
+              "cites": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "expert_inputs": {
+          "type": "array",
+          "description": "One-off knobs an expert can twist via the dashboard's Study Inputs tab — feature flags, mechanism toggles, calibration choices. Each entry: {name, kind: toggle|enum|number, current, options?, description}.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "description": "v4 narrative field — the executive summary block. Lands at the top of the rendered study page. Lets a reviewer who won't read the YAML or runs.db see the headline verdict, evidence quality, and key numbers in one panel. dnaa-02 example: {title, verdict: failing-bio, confidence: high, evidence_quality: calibrated, objective: '...', conclusion: '...', main_insight: '...', caveat: '...', key_metrics: [{label, value, status}]}.",
+      "additionalProperties": true,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "verdict": {
+          "type": "string",
+          "description": "Free-form headline verdict. Common values: passing | passing-with-caveats | failing-bio | failing-impl | inconclusive | not-yet-run."
+        },
+        "confidence": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "high",
+            "medium",
+            "low",
+            "design-stage",
+            null
+          ],
+          "description": "Controlled confidence level: high | medium | low | design-stage."
+        },
+        "evidence_quality": {
+          "type": "string",
+          "description": "Common values: calibrated (verified against literature targets) | literature-matched (qualitative match) | aspirational (target stated, not yet measured) | regression-only (only structural checks)."
+        },
+        "objective": {
+          "type": "string"
+        },
+        "conclusion": {
+          "type": "string"
+        },
+        "main_insight": {
+          "type": "string"
+        },
+        "caveat": {
+          "type": "string"
+        },
+        "key_metrics": {
+          "type": "array",
+          "description": "Each entry: {label, value, status} or a free-form string. Rendered as a small table next to the verdict.",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "value": {},
+                  "status": {
+                    "type": "string",
+                    "description": "pass | fail | warn | info"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "study_card": {
+      "type": "object",
+      "description": "v4 narrative field — one-paragraph dashboard card. Distinct from `report.objective` (which is multi-sentence). dnaa-02 example: {goal: 'Split DnaA into apo/ATP/ADP...', mechanism: 'New bulk species + a first-order hydrolysis Step', why_before_next: 'dnaa-03 needs to know which nucleotide form...', expected_result: 'DnaA-ATP / total in [0.2, 0.5]', main_expert_question: 'v2ecoli already has a MONOMER0-160_RXN — should we reuse it?'}.",
+      "additionalProperties": true,
+      "properties": {
+        "goal": {
+          "type": "string"
+        },
+        "mechanism": {
+          "type": "string"
+        },
+        "why_before_next": {
+          "type": "string",
+          "description": "Why this study must finish before the next one in the DAG."
+        },
+        "expected_result": {
+          "type": "string"
+        },
+        "main_expert_question": {
+          "type": "string",
+          "description": "The one question the study most wants an expert to weigh in on. Surfaced in the expert-review panel."
+        }
+      }
+    },
+    "biological_summary": {
+      "type": "string",
+      "description": "v4 narrative field — multi-paragraph plain-English mechanism summary. Distinct from `report.main_insight` (one sentence) and `study_card.mechanism` (one paragraph). This is the 'textbook write-up' a non-modeler would read to understand what the study is about. Markdown allowed."
+    },
+    "literature_anchors": {
+      "description": "v4 narrative field — testable expectations from the literature, paired with how they're measured in the model. Each entry pins a literature claim to a model observable and tracks its current status in the workspace. Lets a reviewer audit 'did we actually implement this?' without reading code.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "expectation": {
+                "type": "string",
+                "description": "What the literature claims (e.g. 'DnaA-ATP / total DnaA ≈ 20-50% during steady growth')."
+              },
+              "cite": {
+                "type": "string",
+                "description": "citation key for a reference"
+              },
+              "model_observable": {
+                "type": "string",
+                "description": "How to measure this in the simulation (e.g. 'bulk[DnaA_ATP] / (bulk[DnaA_apo] + bulk[DnaA_ATP] + bulk[DnaA_ADP])')."
+              },
+              "source": {
+                "type": "string",
+                "description": "Bib-key or short literature citation (e.g. 'Boesen 2024 PNAS', 'Skarstad 1986')."
+              },
+              "status_in_workspace": {
+                "type": "string",
+                "description": "Free-form; common values: 'Not yet measurable — species don't exist yet' | 'Already available via X listener' | 'Partial — only Y is plumbed' | 'Verified — observed value matches'."
+              },
+              "cites": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional bib_key list (preferred over the free-form `source` for new entries)."
+              }
+            },
+            "required": [
+              "cite"
+            ]
+          }
+        }
+      ]
+    },
+    "design_pivot_required": {
+      "type": "array",
+      "description": "v4 narrative field — named open decision points the study has hit, with their candidate paths. Lets an expert see what choices are blocking forward progress instead of guessing from prose. dnaa-02 example: {id: dnaa-02-EQ-04, status: superseded-by-dnaa-02f, question: 'How do we make hydrolysis stick when MONOMER0-4565_RXN re-equilibrates?', alternatives: ['A. Add locked species', 'B. Patch stoichMatrix'], requested_response: 'Expert opinion on (A) vs (B)'}.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$",
+            "description": "Stable slug, unique within this study (e.g. dnaa-02-EQ-04)."
+          },
+          "status": {
+            "type": "string",
+            "description": "Common values: open | accepted | rejected | superseded-by-<slug> | obsolete | resolved."
+          },
+          "question": {
+            "type": "string",
+            "description": "The decision being made."
+          },
+          "alternatives": {
+            "type": "array",
+            "description": "Candidate paths. Free-form strings.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requested_response": {
+            "type": "string",
+            "description": "What the author wants from a reviewer (e.g. 'Expert opinion on whether (A) or (B) is cleaner')."
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question"
+        ]
+      }
+    },
+    "conclusion_verdicts": {
+      "description": "v4 narrative field — three-track verdict block. Distinct from `conclusion_logic` (which is the if-pass/if-fail decision tree). dnaa established three separable dimensions a study can pass/fail on: regression_compatibility (does the code still build/run cleanly?), biological_validation (does it match the literature?), explanatory_gain (did we learn something new?). Each track is {result: PASS|FAIL|MIXED|PENDING, basis: '<why>'}. Lets the dashboard render a 'PASS on regression but MIXED on biology' verdict instead of forcing one boolean.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "anyOf": [
+              {
+                "required": [
+                  "claim",
+                  "verdict"
+                ]
+              },
+              {
+                "required": [
+                  "statement",
+                  "verdict"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
+    },
+    "builds_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "deprecated": true,
+      "x-replaced-by": "pipeline_gate.prerequisites",
+      "description": "Deprecated lineage list; fold into parent_studies[].relation=builds-on."
+    },
+    "upstream_state_consumed": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "deprecated": true,
+      "x-replaced-by": "pipeline_gate.prerequisites",
+      "description": "Deprecated dataflow list; fold into parent_studies[].provides."
+    }
+  },
+  "$defs": {
+    "portFace": {
+      "type": "object",
+      "description": "A set of named ports, each mapping a port name to a bigraph port-type. Used by study contract.face inputs/outputs.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "_type"
+        ],
+        "properties": {
+          "_type": {
+            "type": "string",
+            "description": "Bigraph type of the port, e.g. 'float' or 'quantity[float,fg]'."
+          },
+          "_units": {
+            "type": "string",
+            "description": "Pint unit string, e.g. 'kelvin', 'molar', 'meter/second'."
+          },
+          "_min": {
+            "type": "number"
+          },
+          "_max": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}

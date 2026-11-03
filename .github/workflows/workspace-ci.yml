@@ -1,0 +1,189 @@
+# >>> viva-template-provenance >>>
+# This GitHub Actions workflow is GENERATED from viva-template. Do not edit
+# it by hand: your changes are lost the next time it is regenerated, and a
+# hand-edit is invisible to the drift guard.
+#
+# If viva-template's copy of this workflow changes, this file becomes STALE
+# and workspace CI flags it (scripts/check-workflow-freshness.py). Refresh by
+# re-scaffolding, or by copying the current source from
+#   vivarium-collective/viva-template/template/.github/workflows/<template>
+# template: workspace-ci.yml.j2
+# sha256: fe8c8f03b54507d76509e9c29e8d6e98ff5d35458278b85bb275df437162ede6
+# <<< viva-template-provenance <<<
+
+name: workspace-ci
+
+# Trigger scope keeps CI honest without flooding: pushes run CI only on the
+# default branch, while all other-branch validation happens via the PR. That
+# stops every work-in-progress push to a feature branch from firing a run (and
+# emailing a failure) — you get ONE run per PR sync instead of a push + a
+# pull_request run per commit. The concurrency group then cancels a superseded
+# run when you push again, so rapid iteration no longer leaves a trail of
+# completed red runs.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: workspace-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# CI for a workspace scaffolded from viva-template.
+#
+# Sequence:
+#   1. Check out the workspace (no submodules — workspace tests don't need them,
+#      and recursive init breaks when an external/* submodule contains its own
+#      orphaned gitlinks that aren't declared in its .gitmodules).
+#   2. Best-effort init of external/* submodules (one level deep, never recursive).
+#      Failures here are non-fatal — the workspace tests should run regardless.
+#   3. Set up venv + install workspace deps editably.
+#   4. Lint workspace.yaml against the JSON schema.
+#   5. Run pytest at the workspace root (if any test files exist).
+#
+# This file ships in viva-template as `.j2` so GitHub does NOT run it on the
+# template repo itself (which has no real pyproject.toml). template-init.sh
+# renders it to `.yml` when a user scaffolds a workspace.
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      # Fail fast if a local absolute path (file:///, /Users/, /home/) was
+      # committed into a dependency/config file — a recurring CI break when a
+      # sibling editable install leaks into pyproject.toml. Only needs the repo,
+      # so it runs right after checkout, before any venv-dependent step.
+      # Guarded on presence: an older workspace scaffolded before this script
+      # existed must skip it, not fail with "No such file or directory" (127).
+      - name: Check for leaked local paths
+        run: |
+          if [ -f scripts/check-no-local-paths.sh ]; then
+            bash scripts/check-no-local-paths.sh
+          else
+            echo "scripts/check-no-local-paths.sh not present — skipping local-path check."
+          fi
+      - name: Init external submodules (best-effort, non-recursive)
+        run: |
+          # Default `git submodule update` is non-recursive — omit --recursive
+          # to avoid descending into a sub-module's submodules (which can have
+          # orphan gitlinks like v2ecoli's .claude/worktrees/*). Failures here
+          # are tolerated — workspace tests don't strictly need every external.
+          # NOTE: --no-recursive is NOT a real flag; just omit --recursive.
+          git submodule update --init external/ 2>&1 || true
+          echo "--- external/ contents ---"
+          ls -la external/ 2>&1 || true
+      - uses: actions/setup-python@v6
+        with:
+          # Rendered from the workspace's pyproject.toml requires-python by
+          # template-init.sh (">=3.12" -> "3.12", otherwise "3.11"). A
+          # 3.12-only workspace must test on 3.12, not a hardcoded 3.11.
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Set up venv and install
+        run: |
+          uv venv .venv
+          source .venv/bin/activate
+          # A scaffolded workspace ships a root pyproject.toml (rendered from
+          # pyproject.toml.j2) with a `dev` extra, so the normal path is the
+          # editable install below. Guard it so a workspace that has diverged
+          # (e.g. no root package yet) still gets the dev tooling and a green
+          # CI run instead of `uv pip install` aborting with
+          # "does not appear to be a Python project".
+          if [ -f pyproject.toml ] || [ -f setup.py ]; then
+            uv pip install -e ".[dev]"
+          else
+            echo "No root pyproject.toml/setup.py found — installing dev tooling only."
+            uv pip install pytest
+          fi
+      - name: Check uv.lock is committed and current
+        # A committed uv.lock is what makes a workspace reproducible: every checkout, CI run and remote
+        # run (the workbench forwards the lock's framework pins to the backend) gets the same versions.
+        # Present -> it must match pyproject.toml (`uv lock --check` fails on a stale lock; refresh with
+        # `uv lock` and commit). Absent -> a warning, so a workspace scaffolded before this check keeps a
+        # green CI until it commits one (`uv lock`, then commit uv.lock).
+        run: |
+          if [ ! -f pyproject.toml ]; then
+            echo "No pyproject.toml — no lock to check."
+          elif [ -f uv.lock ]; then
+            uv lock --check
+          else
+            echo "::warning title=No committed uv.lock::This workspace has no committed uv.lock, so its dependency versions are not reproducible. Run 'uv lock' and commit uv.lock."
+          fi
+      - name: Lint workspace
+        run: |
+          source .venv/bin/activate
+          # Scaffolded workspaces ship this linter; tolerate its absence so a
+          # trimmed-down workspace doesn't fail CI on a missing script.
+          if [ -f scripts/lint-workspace.py ]; then
+            python scripts/lint-workspace.py
+          else
+            echo "No scripts/lint-workspace.py found — skipping workspace lint."
+          fi
+      - name: Check README generated tables are fresh (non-blocking)
+        run: |
+          source .venv/bin/activate
+          # README's <!-- BEGIN:composites/investigations --> tables are generated
+          # from the workspace by `vivarium-workbench gen-readme` (the same sets
+          # the dashboard shows). Adding/editing composites or investigations
+          # without re-running it leaves the tables stale.
+          #
+          # This is COSMETIC drift (the README mirrors content that also lives in
+          # the dashboard), so it is a NON-BLOCKING warning — it must not gate
+          # merges. Correctness (workspace lint + tests) still fails the build.
+          # This prevents the recurring "CI red on every content edit" churn.
+          # Refresh anytime with: vivarium-workbench gen-readme --workspace .
+          #
+          # Guard on availability so a workspace pinned to an older
+          # vivarium-workbench (before gen-readme) doesn't warn spuriously.
+          if vivarium-workbench gen-readme --help >/dev/null 2>&1; then
+            if ! vivarium-workbench gen-readme --workspace . --check; then
+              echo "::warning title=Stale README tables::README generated tables are out of date. Run 'vivarium-workbench gen-readme --workspace .' and commit to refresh them."
+            fi
+          else
+            echo "vivarium-workbench gen-readme unavailable (older pin) — skipping README freshness check."
+          fi
+      - name: Check generated workflows are fresh vs viva-template
+        run: |
+          # Every workflow scaffolded from viva-template carries a provenance
+          # stamp in its header (# >>> viva-template-provenance >>>). This step
+          # fails if viva-template's copy of a workflow has since changed and
+          # this generated copy is now STALE — the recurring "stale generated CI
+          # workflow" rot. Regenerate by re-scaffolding from viva-template, or by
+          # copying the current source from
+          #   vivarium-collective/viva-template/template/.github/workflows/
+          # The checker is stdlib-only; an unreachable upstream (network flake or
+          # an older pin) is treated as non-fatal — only real drift fails here.
+          if [ -f scripts/check-workflow-freshness.py ]; then
+            python scripts/check-workflow-freshness.py --check
+          else
+            echo "scripts/check-workflow-freshness.py not present — skipping workflow drift check."
+          fi
+      - name: Run workspace tests
+        if: hashFiles('tests/**/*.py') != ''
+        run: |
+          source .venv/bin/activate
+          pytest tests/ -v --color=yes
+
+      - name: Publish render check (no study would 404)
+        run: |
+          # The deploy job (publish-dashboard.yml) renders one read-only shell
+          # per study. If any study fails to render, the published site 404s on
+          # opening it. That guard already lives in the deploy — but the deploy
+          # runs AFTER merge, so a study-render break reaches the live site
+          # before anyone sees it. Run the SAME snapshot build here, as a
+          # required PR gate, so the break is caught before merge. Mirror the
+          # deploy's vivarium-workbench@main install so the gate tests exactly
+          # what will deploy.
+          source .venv/bin/activate
+          uv pip install --reinstall-package vivarium-workbench "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
+          if vivarium-workbench-publish --help >/dev/null 2>&1; then
+            # A non-zero exit here means "the snapshot would 404 on opening one
+            # or more studies" — fail the PR rather than the live site.
+            vivarium-workbench-publish --workspace . --out "${RUNNER_TEMP:-/tmp}/render-check"
+          else
+            echo "vivarium-workbench-publish unavailable (older pin) — skipping render check."
+          fi

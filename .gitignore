@@ -1,0 +1,35 @@
+.venv/
+# Dashboard runtime state (composite-runs.db + WAL/SHM, dashboard/, runs/,
+# viz-requests/, agent-responses/, …). Everything under .pbg/ is generated;
+# the directory is recreated on demand by the dashboard. v2ecoli friction
+# #15 (2026-05-19): a granular per-subdir list missed sqlite WAL/SHM
+# sidecars (.pbg/composite-runs.db-shm / -wal) and .pbg/dashboard/, which
+# tripped the dashboard's own dirty-tree gate on Install + workstream
+# commit. Note: `.pbg/*` (not `.pbg/`) so the re-include below can rescue
+# scaffolded schema files — gitignore can't re-include children of a
+# parent directory that's been fully excluded.
+.pbg/*
+# .pbg/schemas/*.json (workspace/study/investigation) ship via scaffold
+# and ARE authored content. They live under .pbg/ for namespacing but
+# need to remain tracked.
+!.pbg/schemas/
+# hpc.env.example is a committed template; hpc.env and hpc_known_hosts
+# are gitignored by .pbg/* above (they hold real credentials/key paths).
+!.pbg/hpc.env.example
+# Investigation runtime artifacts (results DB + rendered HTML + lock file).
+# spec.yaml + data/ are tracked; everything else is regenerated on each run.
+investigations/*/runs.db
+investigations/*/viz/
+investigations/*/.run.lock
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+# Dashboard-copied report assets (style.css, client.js, vivarium-logo.png, …) —
+# regenerated from vivarium-workbench on each report render. Only .keep is tracked.
+workspace/reports/assets/*
+!workspace/reports/assets/.keep
+# Transient brainstorm session artifacts (server PIDs, logs, rendered HTML).
+.superpowers/brainstorm/
+# Scratch TODO list agents keep per-workspace; not tracked content.
+todo.md

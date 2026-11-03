@@ -1,0 +1,137 @@
+# >>> viva-template-provenance >>>
+# This GitHub Actions workflow is GENERATED from viva-template. Do not edit
+# it by hand: your changes are lost the next time it is regenerated, and a
+# hand-edit is invisible to the drift guard.
+#
+# If viva-template's copy of this workflow changes, this file becomes STALE
+# and workspace CI flags it (scripts/check-workflow-freshness.py). Refresh by
+# re-scaffolding, or by copying the current source from
+#   vivarium-collective/viva-template/template/.github/workflows/<template>
+# template: publish-reports.yml
+# sha256: 0ca08d3e69afe52138d97a21b897ee1e7e8ad2ff84f2a6eb8ba65626f9aa8a46
+# <<< viva-template-provenance <<<
+
+name: Publish investigation reports
+
+# Regenerate every investigation's self-contained HTML report and publish it to
+# the gh-pages branch at investigations/<slug>.html. The report is built by the
+# vivarium-workbench SPA CLIENT-SIDE, so we serve the dashboard headlessly and
+# drive its "Generate report" button via Playwright
+# (scripts/publish_investigation_reports.py).
+#
+# Ships with every workspace scaffolded from the template. DEPLOY job
+# (post-merge to main), not a PR gate — a failure here never blocks a merge.
+# It only ever writes investigations/*.html + the landing index on gh-pages.
+#
+# One-time setup: Settings → Pages → Source = gh-pages (the publish-dashboard
+# workflow creates the branch on its first run).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workspace/**'
+      - 'scripts/publish_investigation_reports.py'
+      - '.github/workflows/publish-reports.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-reports
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # push to the gh-pages branch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Workspaces commonly vendor ecosystem deps as git submodules under
+          # external/ and declare them as editable path deps in pyproject
+          # ([tool.uv.sources] … { path = "external/<pkg>", editable = true }).
+          # Without this, the submodule dir is empty, so `uv sync` fails with
+          # "Failed to generate package metadata for <pkg>==0.0.0". A repo with
+          # no submodules treats this as a harmless no-op.
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12.9
+
+      - name: Install dependencies (incl. vivarium-workbench)
+        run: uv sync --extra dev || uv sync
+
+      - name: Install Playwright + Chromium
+        run: |
+          uv pip install playwright
+          uv run playwright install --with-deps chromium
+
+      - name: Generate investigation reports
+        id: gen
+        # Serves the dashboard, drives each investigation's report export
+        # headlessly, writes reports/published/investigations/<slug>.html.
+        # Keep going on a per-report failure so good reports still publish.
+        run: |
+          set +e
+          uv run python scripts/publish_investigation_reports.py \
+            --workspace . --out reports/published
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Publish generated reports to gh-pages
+        # Surgical: copy ONLY the freshly-generated reports onto gh-pages via a
+        # worktree (bootstrapping the branch on first publish). Never deletes —
+        # a report that failed to regenerate keeps its previous published copy.
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          generated=(reports/published/investigations/*.html)
+          if [ ${#generated[@]} -eq 0 ]; then
+            echo "no reports were generated; nothing to publish"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add /tmp/ghp gh-pages
+          else
+            echo "gh-pages does not exist yet — bootstrapping it"
+            git worktree add --detach /tmp/ghp
+            ( cd /tmp/ghp && git checkout --orphan gh-pages && git rm -rf . >/dev/null 2>&1 || true )
+          fi
+          mkdir -p /tmp/ghp/investigations
+          cp reports/published/investigations/*.html /tmp/ghp/investigations/
+          touch /tmp/ghp/.nojekyll
+          # Seed a landing page if gh-pages has none, then regenerate its
+          # investigation list between the auto-investigations markers.
+          if [ ! -f /tmp/ghp/index.html ]; then
+            cp scripts/gh-pages-landing.html /tmp/ghp/index.html
+          fi
+          if [ -f reports/published/investigations_index.html ]; then
+            python3 scripts/inject_index_fragment.py \
+              reports/published/investigations_index.html /tmp/ghp/index.html
+          fi
+          cd /tmp/ghp
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no report content changed; skipping commit"
+          else
+            git commit -m "gh-pages: republish investigation reports + landing list (automated, ${GITHUB_SHA::7})"
+            git push origin gh-pages
+            echo "published $(ls investigations/*.html | wc -l) investigation report(s)"
+          fi
+
+      - name: Fail if any report failed to generate
+        run: |
+          code="${{ steps.gen.outputs.exit_code }}"
+          if [ "$code" != "0" ]; then
+            echo "::error::one or more investigation reports failed to generate (publish_investigation_reports.py exit $code)"
+            exit 1
+          fi

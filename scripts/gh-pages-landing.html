@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--
+  gh-pages landing page (seeded by .github/workflows/publish-reports.yml on the
+  first publish). The investigation list between the auto-investigations markers
+  is regenerated automatically by scripts/inject_index_fragment.py — do not edit
+  that block by hand. Everything else is yours to customise.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Investigations</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 820px;
+         margin: 3rem auto; padding: 0 1.25rem; color: #1e293b; line-height: 1.55; }
+  h1 { margin-bottom: .25rem; }
+  .sub { color: #64748b; margin-top: 0; }
+  a { color: #2563eb; }
+  .dash { display: inline-block; margin: 1rem 0 1.5rem; padding: .5rem .9rem;
+          background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+          text-decoration: none; font-weight: 600; }
+  ul { padding-left: 1.1rem; }
+  li { margin: .35rem 0; }
+  .empty { color: #94a3b8; font-style: italic; }
+  footer { margin-top: 2.5rem; color: #94a3b8; font-size: .85em; }
+</style>
+</head>
+<body>
+<h1>Investigations</h1>
+<p class="sub">Read-only published reports. Generated automatically from <code>main</code>.</p>
+
+<a class="dash" href="dashboard/">▸ Browse the full read-only dashboard</a>
+
+<h2>Reports</h2>
+<!-- BEGIN auto-investigations -->
+<ul><li class="empty">No published investigation reports yet — they appear here after the first merge to main.</li></ul>
+<!-- END auto-investigations -->
+
+<footer>Published by the vivarium auto-publish workflows (publish-dashboard.yml · publish-reports.yml).</footer>
+</body>
+</html>
