@@ -37,8 +37,11 @@ From: python:3.13-slim-bookworm
     # Same fallback chain as the Dockerfile: try a project-skipping sync
     # (faster + handles workspaces whose pyproject still has the
     # hatchling bypass), fall back to a full sync.
-    # The dashboard (vivarium-workbench) is the `dashboard` extra, not a runtime dependency.
-    uv sync --extra dashboard --no-install-project || uv sync --extra dashboard
+    uv sync --no-install-project || uv sync
+    # Same check as the Dockerfile: the runscript is the workbench, so fail the
+    # build when the sync left it out (see the `workbench` dependency group in
+    # pyproject.toml).
+    uv run --no-sync vivarium-workbench serve --help > /dev/null
 
 %environment
     export PYTHONUNBUFFERED=1

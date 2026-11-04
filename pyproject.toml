@@ -23,7 +23,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # The workspace dashboard (`vivarium-workbench serve`, scripts/serve.sh), reports and visualizations. The container
-# image installs it (Dockerfile, Singularity.def).
+# image installs it through the default `workbench` group below.
 dashboard = [
     "bigraph-viz>=2.0.3",
     "pyyaml>=6.0",
@@ -37,6 +37,14 @@ dashboard = [
 # CI installs `.[dev]` (workspace-ci.yml), which needs the workspace lint and the dashboard tooling too.
 dev = ["viva-maboss[dashboard]", "pytest>=7.4"]
 cli = ["typer", "rich"]
+
+# The image's `uv sync` installs default groups, not extras, so this group carries the dashboard extra into the
+# image (viva-template v0.1.0's pattern); groups are not package metadata, so `pip install viva-maboss` stays lean.
+[dependency-groups]
+workbench = ["viva-maboss[dashboard]"]
+
+[tool.uv]
+default-groups = ["workbench"]
 
 [project.scripts]
 viva-maboss = "viva_maboss.cli.__main__:main"

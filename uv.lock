@@ -2450,6 +2450,11 @@ dev = [
     { name = "vivarium-workbench" },
 ]
 
+[package.dev-dependencies]
+workbench = [
+    { name = "viva-maboss", extra = ["dashboard"] },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "bigraph-schema", specifier = ">=1.8.1" },
@@ -2472,6 +2477,9 @@ requires-dist = [
     { name = "vivarium-workbench", marker = "extra == 'dashboard'", git = "https://github.com/vivarium-collective/vivarium-workbench.git?branch=main" },
 ]
 provides-extras = ["dashboard", "dev", "cli"]
+
+[package.metadata.requires-dev]
+workbench = [{ name = "viva-maboss", extras = ["dashboard"] }]
 
 [[package]]
 name = "viva-superpowers"

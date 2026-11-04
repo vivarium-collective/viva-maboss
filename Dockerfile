@@ -31,8 +31,13 @@ RUN mkdir -p /app/.results_cache
 # paths inside the workspace (a vendored sibling, a local sub-checkout)
 # resolve. Loses some layer cache on source-only edits — acceptable
 # trade-off for robustness across source types.
-# The dashboard (vivarium-workbench) is the `dashboard` extra, not a runtime dependency, so the image installs it.
-RUN uv sync --extra dashboard --no-install-project || uv sync --extra dashboard
+RUN uv sync --no-install-project || uv sync
+
+# The image's command is the workbench, so fail the build, not the container,
+# when the sync left it out. pyproject.toml's default `workbench` dependency
+# group installs the `dashboard` extra, which holds it; a workspace that keeps
+# vivarium-workbench in its runtime dependencies gets it from those.
+RUN uv run --no-sync vivarium-workbench serve --help > /dev/null
 
 EXPOSE 9863
 
