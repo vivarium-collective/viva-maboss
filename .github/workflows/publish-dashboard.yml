@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: publish-dashboard.yml
-# sha256: 5d7d9f0e4368f54a2901cc71f02e136ef2ec7433da035aec3039403b5d3c2998
+# sha256: a9caa6b4568bdfd3ed3878cec90f0e716e2c13f754b9e16b2166a0be4f807b33
 # <<< viva-template-provenance <<<
 
 name: Publish read-only workbench
@@ -49,6 +49,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Force UTF-8 so file reads don't fall back to the runner's ASCII locale.
+    # Without this, rendering/notebook-export of any investigation whose content
+    # contains non-ASCII bytes (e.g. an em-dash, 0xe2) raises UnicodeDecodeError
+    # and the report HTML is silently dropped from the bundle.
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
     steps:
       - uses: actions/checkout@v4
         with:
