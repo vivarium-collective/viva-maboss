@@ -120,6 +120,45 @@ def test_same_seed_reproduces_and_another_seed_differs():
     assert run(1) != run(2)
 
 
+def _real_joint_distribution():
+    """A joint-state distribution from a real MaBoSS run of the toggle switch, as cmaboss lists it."""
+    process = make(network=TOGGLE, parameters={"k_up": 1.0}, initial_state={"A": 1}, sample_count=2000, seed=5)
+    result = process._run({"A": 1.0, "B": 0.0}, dict(process._parameters), 1.0, 12345)
+    probabilities, _, labels, _ = result.get_last_probtraj()
+    labels, probabilities = [str(label) for label in labels], [float(p) for p in probabilities[0]]
+    assert len(labels) >= 3, "the check needs a distribution over several states"
+    return labels, probabilities
+
+
+def test_the_carried_state_does_not_depend_on_the_order_the_engine_lists_states():
+    """Regression: the state was drawn by index into cmaboss's listing, whose order follows its C++ hash tables. A
+    document and seed carried one state on macOS and another on Linux (viva-multiscale-nfkb's composite: compose-api
+    simulation 12516 against a local run, identical until the first carried state)."""
+    from viva_maboss.processes import _sample_joint_state
+
+    labels, probabilities = _real_joint_distribution()
+    orders = [list(range(len(labels))), list(reversed(range(len(labels)))), [*range(1, len(labels)), 0]]
+    for seed in range(200):
+        drawn = [_sample_joint_state([labels[i] for i in order], [probabilities[i] for i in order], seed)
+                 for order in orders]
+        assert drawn[0] == drawn[1] == drawn[2], (seed, drawn)
+
+
+def test_the_carried_state_follows_the_engines_distribution():
+    from viva_maboss.processes import _on_nodes, _sample_joint_state
+
+    labels, probabilities = _real_joint_distribution()
+    draws = 4000
+    counts = dict.fromkeys(labels, 0)
+    by_nodes = {frozenset(_on_nodes(label)): label for label in labels}
+    for seed in range(draws):
+        counts[by_nodes[frozenset(_sample_joint_state(labels, probabilities, seed))]] += 1
+    total = sum(probabilities)
+    for label, p in zip(labels, probabilities):
+        expected = p / total
+        assert abs(counts[label] / draws - expected) <= 4 * math.sqrt(expected * (1 - expected) / draws) + 1e-12, label
+
+
 def test_consecutive_seeds_do_not_share_streams():
     """Regression: seed + interval index made seed=1 at interval 1 identical to seed=2 at interval 0."""
     def interval_result(seed, step):

@@ -18,7 +18,10 @@ values whatever they held before: a store seeded differently, a sibling's write,
 
 Reproducibility. Each interval's MaBoSS seed and sampler come from ``numpy.random.SeedSequence([seed, step])``, where
 ``step`` is the interval's index, kept in the ``steps`` store. Distinct seeds never share streams, and a run resumed
-from a saved state continues the same streams.
+from a saved state continues the same streams. The joint state carried to the next interval is drawn over the states
+in a canonical order (each state's on-nodes, sorted), not in the order cmaboss lists them. That order comes from its
+C++ hash tables, which differ between standard libraries, so the same document and seed would otherwise carry a
+different state on Linux than on macOS.
 
 Parameters. The network's ``$name`` parameters are written into each interval's ``.cfg``, from ``config['parameters']``
 overridden by the ``parameters`` input, so an upstream process (a kinetic layer, for example) can drive rates. Every
@@ -52,6 +55,18 @@ _ENGINES = ((64, "cmaboss"), (128, "cmaboss_128n"), (256, "cmaboss_256n"), (512,
 def _on_nodes(label: str) -> set[str]:
     """The nodes that are on in a MaBoSS joint-state label: '<nil>' is none, 'A -- B' is A and B."""
     return set() if label == _NO_NODE_ON else set(label.split(_JOINT_SEPARATOR))
+
+
+def _sample_joint_state(labels, probabilities, seed: int) -> set[str]:
+    """One joint state drawn from MaBoSS's joint-state distribution, as its on-nodes. The states are put in a canonical
+    order first (each one's on-nodes, sorted), so the same seed draws the same state whatever order the engine lists
+    them in."""
+    states = sorted((tuple(sorted(_on_nodes(str(label)))), float(p)) for label, p in zip(labels, probabilities))
+    weights = np.clip(np.asarray([p for _, p in states], dtype=float), 0.0, None)
+    if not weights.sum() > 0.0:
+        raise RuntimeError("MaBoSS returned an empty joint-state distribution for the interval")
+    chosen = np.random.default_rng(seed).choice(len(states), p=weights / weights.sum())
+    return set(states[chosen][0])
 
 
 def _engine_for(node_count: int):
@@ -144,11 +159,7 @@ class MaBoSSProcess(Process):
         probabilities.update({str(node): float(p) for node, p in zip(node_labels, node_probs[0])})
 
         joint_probs, _, joint_labels, _ = result.get_last_probtraj()
-        weights = np.clip(np.asarray(joint_probs[0], dtype=float), 0.0, None)
-        if not weights.sum() > 0.0:
-            raise RuntimeError("MaBoSS returned an empty joint-state distribution for the interval")
-        chosen = np.random.default_rng(int(sampler_seed)).choice(len(joint_labels), p=weights / weights.sum())
-        on = _on_nodes(str(joint_labels[chosen]))
+        on = _sample_joint_state(joint_labels, joint_probs[0], int(sampler_seed))
 
         return {
             "node_state": {
