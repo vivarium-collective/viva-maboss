@@ -8,7 +8,7 @@
 # re-scaffolding, or by copying the current source from
 #   vivarium-collective/viva-template/template/.github/workflows/<template>
 # template: publish-reports.yml
-# sha256: 0ca08d3e69afe52138d97a21b897ee1e7e8ad2ff84f2a6eb8ba65626f9aa8a46
+# sha256: b5c6c9237af8b62cc77f1013b1b4b88151b88a602047829340f18e32ea0dd7c8
 # <<< viva-template-provenance <<<
 
 name: Publish investigation reports
@@ -73,14 +73,30 @@ jobs:
           uv pip install playwright
           uv run playwright install --with-deps chromium
 
+      - name: Ensure the publish CLI is current (latest main)
+        # `uv sync` above installs whatever vivarium-workbench the workspace has
+        # PINNED, which is frequently far behind. The report generator serves the
+        # dashboard, so a stale pin boots a stale dashboard that fails against the
+        # current ecosystem — e.g. an old workbench importing `workspace_catalog`
+        # from `viva_superpowers` after it moved to `discovery_engine` (the import
+        # is gone, the dashboard never becomes healthy, every report fails).
+        # Re-install the current workbench on top, and run the generator below
+        # inside the ACTIVATED venv (not `uv run`, which re-syncs to uv.lock and
+        # would undo this install). Mirrors v2ecoli's publish-reports.yml.
+        run: |
+          uv pip install --reinstall-package vivarium-workbench "vivarium-workbench @ git+https://github.com/vivarium-collective/vivarium-workbench.git@main"
+
       - name: Generate investigation reports
         id: gen
         # Serves the dashboard, drives each investigation's report export
         # headlessly, writes reports/published/investigations/<slug>.html.
         # Keep going on a per-report failure so good reports still publish.
+        # Activated venv (not `uv run`): `uv run` re-syncs to uv.lock, undoing
+        # the workbench@main install from the previous step.
         run: |
           set +e
-          uv run python scripts/publish_investigation_reports.py \
+          source .venv/bin/activate
+          python scripts/publish_investigation_reports.py \
             --workspace . --out reports/published
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
