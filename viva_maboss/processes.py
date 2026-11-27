@@ -69,7 +69,13 @@ def _sample_joint_state(labels, probabilities, seed: int) -> set[str]:
     return set(states[chosen][0])
 
 
-def _engine_for(node_count: int):
+def engine_for(node_count: int):
+    """The smallest cmaboss build (by node capacity) that fits a network of ``node_count`` nodes.
+
+    cmaboss ships as variants capped at 64/128/256/512/1024 nodes; the base ``cmaboss`` module
+    is the 64-node build, so code that imports it directly silently fails on larger networks.
+    Public helper so other wrappers can reuse this selection instead of re-binding cmaboss.
+    """
     for capacity, module in _ENGINES:
         if node_count <= capacity:
             return importlib.import_module(module)
@@ -120,7 +126,7 @@ class MaBoSSProcess(Process):
         self._workdir = tempfile.TemporaryDirectory(prefix="viva-maboss-")
         self._bnd = Path(self._workdir.name) / "network.bnd"
         self._bnd.write_text(network)
-        self._engine = _engine_for(len(set(_NODE_LINE.findall(network))))
+        self._engine = engine_for(len(set(_NODE_LINE.findall(network))))
         self._nodes = self._read_nodes()
         unknown = set(config.get("initial_state") or {}) - set(self._nodes)
         if unknown:

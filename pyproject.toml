@@ -1,6 +1,6 @@
 [project]
 name = "viva-maboss"
-version = "0.1.2"
+version = "0.1.3"
 description = "Process-bigraph wrapper for MaBoSS: stochastic Boolean network simulation (cmaboss)"
 readme = "README.md"
 license = { text = "MIT" }
